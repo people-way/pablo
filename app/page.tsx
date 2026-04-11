@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-const PAYMENT_LINK = "https://buy.stripe.com/eVq7sM4LieXl36q78DeOs0K";
+const PAYMENT_LINK = "https://buy.stripe.com/aFa3cwgu016v36q9gLeOs0Y";
 
 // Chess piece SVG icons
 function ChessboardIcon({ className = "" }: { className?: string }) {
@@ -164,7 +164,7 @@ export default function LandingPage() {
               className="btn-gold font-bold px-8 py-4 rounded-xl text-base w-full sm:w-auto"
               style={{ color: "#0a0b0c" }}
             >
-              Start Improving — $29/mo
+              Start Improving — $9/mo
             </Link>
             <a href="#how-it-works"
               className="px-8 py-4 rounded-xl text-base font-medium w-full sm:w-auto text-center transition-all"
@@ -533,7 +533,7 @@ export default function LandingPage() {
                   fontSize: "3.5rem",
                   fontWeight: 700,
                   letterSpacing: "-0.03em"
-                }}>$29</span>
+                }}>$9</span>
                 <span className="text-base" style={{ color: "var(--text-muted)" }}>/month</span>
               </div>
               <div className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>Billed monthly · cancel anytime</div>
@@ -615,7 +615,7 @@ export default function LandingPage() {
             className="btn-gold inline-flex items-center gap-3 px-10 py-5 rounded-xl font-bold text-lg"
             style={{ color: "#0a0b0c" }}
           >
-            Get Pablo Pro — $29/mo
+            Get Pablo Pro — $9/mo
             <span>→</span>
           </Link>
           <p className="mt-4 text-sm" style={{ color: "var(--text-muted)" }}>
