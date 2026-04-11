@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+:root {
+  --bg-primary: #0a0b0c;
+  --bg-secondary: #111316;
+  --bg-card: #161a1f;
+  --gold: #c9a84c;
+  --gold-light: #e8c870;
+  --gold-dim: #8a6f2e;
+  --text-primary: #f0ede8;
+  --text-secondary: #9a9289;
+  --text-muted: #5a5650;
+  --border: #2a2520;
+  --border-gold: #3d3020;
+}
+
+@theme inline {
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Chess board pattern utility */
+.chess-pattern {
+  background-image:
+    repeating-conic-gradient(rgba(201, 168, 76, 0.04) 0% 25%, transparent 0% 50%);
+  background-size: 48px 48px;
+}
+
+.chess-pattern-sm {
+  background-image:
+    repeating-conic-gradient(rgba(201, 168, 76, 0.06) 0% 25%, transparent 0% 50%);
+  background-size: 24px 24px;
+}
+
+/* Gold gradient text */
+.gold-text {
+  background: linear-gradient(135deg, #c9a84c 0%, #e8c870 50%, #c9a84c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pulsegold {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.7s ease forwards;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.6s ease forwards;
+}
+
+.delay-100 { animation-delay: 0.1s; opacity: 0; }
+.delay-200 { animation-delay: 0.2s; opacity: 0; }
+.delay-300 { animation-delay: 0.3s; opacity: 0; }
+.delay-400 { animation-delay: 0.4s; opacity: 0; }
+.delay-500 { animation-delay: 0.5s; opacity: 0; }
+.delay-600 { animation-delay: 0.6s; opacity: 0; }
+.delay-700 { animation-delay: 0.7s; opacity: 0; }
+.delay-800 { animation-delay: 0.8s; opacity: 0; }
+
+/* CTA button shimmer */
+.btn-gold {
+  background: linear-gradient(135deg, #b8923e 0%, #d4a84b 30%, #e8c870 50%, #d4a84b 70%, #b8923e 100%);
+  background-size: 200% auto;
+  transition: background-position 0.5s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-gold:hover {
+  background-position: right center;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(201, 168, 76, 0.35);
+}
+
+.btn-gold:active {
+  transform: translateY(0);
+}
+
+/* Card hover */
+.feature-card {
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--gold-dim);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(201, 168, 76, 0.1);
+}
+
+/* Noise texture overlay */
+.noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* Divider line with gold */
+.divider-gold {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+}
+
+/* Step number */
+.step-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 4rem;
+  font-weight: 700;
+  line-height: 1;
+  background: linear-gradient(135deg, rgba(201,168,76,0.15) 0%, rgba(201,168,76,0.05) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
