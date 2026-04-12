@@ -93,13 +93,11 @@ export default function LandingPage() {
           </div>
 
           <Link
-            href={PAYMENT_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/analyze"
             className="btn-gold text-sm font-bold px-5 py-2.5 rounded-lg"
             style={{ color: "#0a0b0c" }}
           >
-            Get Started
+            Try It Free
           </Link>
         </div>
       </nav>
@@ -150,21 +148,19 @@ export default function LandingPage() {
               lineHeight: 1.7,
               color: "var(--text-secondary)"
             }}>
-            Pablo analyzes every game you play and delivers brutally honest coaching —
-            your exact mistakes, recurring blunder patterns, and a personalized path
-            to your next rating milestone.
+            Start with a free game import or sample demo. Pablo shows your first
+            coaching report before asking you to subscribe for deeper pattern tracking
+            and ongoing analysis.
           </p>
 
           {/* CTAs */}
           <div className="animate-fadeInUp delay-300 flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
             <Link
-              href={PAYMENT_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/analyze"
               className="btn-gold font-bold px-8 py-4 rounded-xl text-base w-full sm:w-auto"
               style={{ color: "#0a0b0c" }}
             >
-              Start Improving — $9/mo
+              Try Free Demo
             </Link>
             <a href="#how-it-works"
               className="px-8 py-4 rounded-xl text-base font-medium w-full sm:w-auto text-center transition-all"
@@ -188,7 +184,7 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-              <span>Trusted by 1,200+ players</span>
+              <span>No card required for first report</span>
             </div>
             <span className="hidden sm:block opacity-20">|</span>
             <div className="flex items-center gap-1.5">
@@ -197,7 +193,7 @@ export default function LandingPage() {
                   <path d="M6 0l1.5 4H12l-3.5 2.5L10 11 6 8.5 2 11l1.5-4.5L0 4h4.5z"/>
                 </svg>
               ))}
-              <span>4.9/5 average rating</span>
+              <span>Import a game or use a sample instantly</span>
             </div>
           </div>
         </div>
@@ -395,20 +391,20 @@ export default function LandingPage() {
               {
                 num: "01",
                 emoji: "♟",
-                title: "Connect Your Account",
-                desc: "One click to import your last 50 games from Chess.com or Lichess. Pablo syncs automatically so it always has your latest games.",
+                title: "Import or Use a Sample",
+                desc: "Start with a public Chess.com username or open Pablo's sample game instantly. No signup wall and no payment prompt yet.",
               },
               {
                 num: "02",
                 emoji: "⚙",
-                title: "Pablo Runs Deep Analysis",
-                desc: "Our AI engine processes every game, cross-references patterns across your entire history, and builds your personal coaching report.",
+                title: "See One Free Coaching Report",
+                desc: "Pablo generates a real analysis preview immediately, including your summary and first flagged mistake, so you can judge value first.",
               },
               {
                 num: "03",
                 emoji: "🎯",
-                title: "Get Your Improvement Plan",
-                desc: "Wake up to a clear action plan: what to drill, what openings to study, and exactly what's holding back your rating right now.",
+                title: "Unlock Full Depth If It Helps",
+                desc: "Only after the report appears does Pablo offer the subscription for full game-by-game detail, recurring patterns, and ongoing coaching.",
               },
             ].map(({ num, emoji, title, desc }, i) => (
               <div key={i} className="flex flex-col">
@@ -516,7 +512,7 @@ export default function LandingPage() {
               <span className="gold-text">Everything Included.</span>
             </h2>
             <p style={{ color: "var(--text-secondary)", lineHeight: 1.7 }}>
-              No tiers. No limits. Cancel anytime.
+              Start free with one coaching preview, then subscribe for unlimited depth.
             </p>
           </div>
 
@@ -564,11 +560,20 @@ export default function LandingPage() {
                 className="btn-gold w-full flex items-center justify-center py-4 rounded-xl font-bold text-base"
                 style={{ color: "#0a0b0c" }}
               >
-                Start Improving Today
+                Upgrade After Your Free Report
               </Link>
               <p className="text-center mt-3 text-xs" style={{ color: "var(--text-muted)" }}>
-                30-day money-back guarantee · Secure checkout via Stripe
+                Payment comes after the trial preview · Secure checkout via Stripe
               </p>
+            </div>
+            <div className="px-8 pb-8">
+              <div className="rounded-xl border px-4 py-4 text-sm leading-6" style={{
+                borderColor: "rgba(201,168,76,0.18)",
+                background: "rgba(201,168,76,0.06)",
+                color: "var(--text-secondary)"
+              }}>
+                <strong style={{ color: "var(--text-primary)" }}>Recommended product change:</strong> treat the first imported game as a no-signup demo, then gate recurring history analysis, weekly reports, and unlimited scans behind the subscription.
+              </div>
             </div>
           </div>
 
@@ -609,17 +614,15 @@ export default function LandingPage() {
             Let Pablo find what you can&rsquo;t see.
           </p>
           <Link
-            href={PAYMENT_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/analyze?sample=1"
             className="btn-gold inline-flex items-center gap-3 px-10 py-5 rounded-xl font-bold text-lg"
             style={{ color: "#0a0b0c" }}
           >
-            Get Pablo Pro — $9/mo
+            Try the Free Demo
             <span>→</span>
           </Link>
           <p className="mt-4 text-sm" style={{ color: "var(--text-muted)" }}>
-            30-day money-back guarantee. Cancel anytime.
+            See one coaching report first. Upgrade only if you want more.
           </p>
         </div>
       </section>

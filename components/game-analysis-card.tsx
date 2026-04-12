@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import type {
   AnalysisPerspective,
@@ -9,6 +10,7 @@ import type {
 type GameAnalysisCardProps = {
   pgn: string;
   perspective: AnalysisPerspective;
+  isTrial?: boolean;
 };
 
 type ApiErrorResponse = {
@@ -17,9 +19,12 @@ type ApiErrorResponse = {
   };
 };
 
+const PAYMENT_LINK = "https://buy.stripe.com/aFa3cwgu016v36q9gLeOs0Y";
+
 export function GameAnalysisCard({
   pgn,
   perspective,
+  isTrial = false,
 }: GameAnalysisCardProps) {
   const [report, setReport] = useState<GameAnalysisReport | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
@@ -59,6 +64,9 @@ export function GameAnalysisCard({
     setReport(payload as GameAnalysisReport);
   }
 
+  const previewBlunders = report?.blunders.slice(0, isTrial ? 1 : report.blunders.length) ?? [];
+  const hiddenBlunderCount = report ? report.blunders.length - previewBlunders.length : 0;
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -67,10 +75,12 @@ export function GameAnalysisCard({
             className="text-xs font-bold tracking-[0.24em] uppercase"
             style={{ color: "var(--text-muted)" }}
           >
-            Pablo Scan
+            {isTrial ? "Free Trial Scan" : "Pablo Scan"}
           </p>
           <p className="mt-2 text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
-            Heuristic v1: missed mates in 1-2 and immediately hanging pieces.
+            {isTrial
+              ? "Try one instant report first. Full recurring analysis unlocks after you see the coaching output."
+              : "Heuristic v1: missed mates in 1-2 and immediately hanging pieces."}
           </p>
         </div>
 
@@ -85,7 +95,7 @@ export function GameAnalysisCard({
           className="btn-gold inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-bold disabled:cursor-wait disabled:opacity-60"
           style={{ color: "#0a0b0c" }}
         >
-          {isPending ? "Analyzing..." : report ? "Analyze Again" : "Analyze"}
+          {isPending ? "Analyzing..." : report ? "Run Again" : "Generate Free Report"}
         </button>
       </div>
 
@@ -136,15 +146,27 @@ export function GameAnalysisCard({
                 {report.blunders.length} blunder
                 {report.blunders.length === 1 ? "" : "s"}
               </span>
+              {isTrial ? (
+                <span
+                  className="rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]"
+                  style={{
+                    borderColor: "rgba(201,168,76,0.2)",
+                    color: "var(--gold-light)",
+                    background: "rgba(201,168,76,0.08)",
+                  }}
+                >
+                  Trial preview
+                </span>
+              ) : null}
             </div>
 
             <p className="text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
               {report.summary}
             </p>
 
-            {report.blunders.length > 0 ? (
+            {previewBlunders.length > 0 ? (
               <div className="grid gap-3">
-                {report.blunders.map((blunder) => (
+                {previewBlunders.map((blunder) => (
                   <article
                     key={`${blunder.move_number}-${blunder.move}`}
                     className="rounded-2xl border px-4 py-4"
@@ -195,6 +217,61 @@ export function GameAnalysisCard({
                 No obvious blunders were flagged in this scan.
               </div>
             )}
+
+            {isTrial ? (
+              <div
+                className="rounded-[1.5rem] border p-4 sm:p-5"
+                style={{
+                  borderColor: "rgba(201,168,76,0.16)",
+                  background: "linear-gradient(180deg, rgba(201,168,76,0.08), rgba(10,11,12,0.82))",
+                }}
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="max-w-2xl">
+                    <p
+                      className="text-xs font-bold tracking-[0.24em] uppercase"
+                      style={{ color: "var(--gold)" }}
+                    >
+                      See the rest with Pablo Pro
+                    </p>
+                    <h3
+                      className="mt-2 text-xl font-bold"
+                      style={{ fontFamily: "var(--font-playfair), serif" }}
+                    >
+                      You got the first coaching hit. Upgrade for the full habit map.
+                    </h3>
+                    <p className="mt-3 text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
+                      {hiddenBlunderCount > 0
+                        ? `${hiddenBlunderCount} more flagged moment${hiddenBlunderCount === 1 ? " is" : "s are"} hidden in this game, plus recurring-pattern reports across your imported history.`
+                        : "Unlock recurring-pattern reports across your imported history, weekly coaching summaries, and unlimited scans."}
+                    </p>
+                    <ul
+                      className="mt-4 grid gap-2 text-sm"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      <li>• Full blunder list for every imported game</li>
+                      <li>• Pattern detection across your recent history</li>
+                      <li>• Weekly coaching reports and study priorities</li>
+                    </ul>
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:min-w-52">
+                    <Link
+                      href={PAYMENT_LINK}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-gold inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-bold"
+                      style={{ color: "#0a0b0c" }}
+                    >
+                      Unlock Pablo Pro
+                    </Link>
+                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                      Payment appears only after the free report.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </section>
       ) : null}
