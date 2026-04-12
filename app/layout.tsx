@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Playfair_Display, DM_Sans } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -36,18 +37,15 @@ export default function RootLayout({
       lang="en"
       className={`${playfair.variable} ${dmSans.variable} h-full antialiased`}
     >
-      <head>
-        <script
-          src="https://phospho-nanocorp-prod--nanocorp-api-fastapi-app.modal.run/beacon/snippet.js?s=pablo"
-          defer
-        />
-      </head>
       <body
         className="min-h-full flex flex-col"
         style={{ fontFamily: "var(--font-dm-sans), DM Sans, sans-serif" }}
       >
         {children}
       </body>
+      <Script
+        src="https://phospho-nanocorp-prod--nanocorp-api-fastapi-app.modal.run/beacon/snippet.js?s=pablo"
+      />
     </html>
   );
 }
