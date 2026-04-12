@@ -137,40 +137,71 @@ export default function LandingPage() {
               letterSpacing: "-0.02em",
               marginBottom: "1.5rem"
             }}>
-            Stop Losing Games<br />
-            <span className="gold-text">You Should Be Winning.</span>
+            Try Pablo on a Real Game<br />
+            <span className="gold-text">Before You Pay for Anything.</span>
           </h1>
 
           {/* Subheadline */}
-          <p className="animate-fadeInUp delay-200 max-w-2xl mx-auto mb-10"
+          <p className="animate-fadeInUp delay-200 max-w-2xl mx-auto mb-8"
             style={{
               fontSize: "clamp(1rem, 2vw, 1.2rem)",
               lineHeight: 1.7,
               color: "var(--text-secondary)"
             }}>
-            Start with a free game import or sample demo. Pablo shows your first
-            coaching report before asking you to subscribe for deeper pattern tracking
-            and ongoing analysis.
+            Import a Chess.com game or open Pablo&rsquo;s sample match. You get one real
+            coaching report first, then decide whether full-history analysis and weekly
+            improvement tracking are worth unlocking.
           </p>
 
+          <div className="animate-fadeInUp delay-250 mx-auto mb-10 max-w-3xl rounded-2xl p-5 text-left"
+            style={{
+              background: "rgba(12,13,14,0.78)",
+              border: "1px solid rgba(201,168,76,0.16)",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.35)"
+            }}>
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                { step: "1", title: "Import or sample", desc: "Start with your username or Pablo&rsquo;s demo game." },
+                { step: "2", title: "See the first report", desc: "Get a real coaching preview with mistakes and themes." },
+                { step: "3", title: "Upgrade only if useful", desc: "Pay after the preview for unlimited analysis and tracking." },
+              ].map(({ step, title, desc }) => (
+                <div key={step} className="flex gap-3 md:block">
+                  <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-black"
+                    style={{ background: "rgba(201,168,76,0.14)", color: "var(--gold)" }}>
+                    {step}
+                  </div>
+                  <div>
+                    <div className="mb-1 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{title}</div>
+                    <div className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* CTAs */}
-          <div className="animate-fadeInUp delay-300 flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
+          <div className="animate-fadeInUp delay-300 flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
             <Link
               href="/analyze"
               className="btn-gold font-bold px-8 py-4 rounded-xl text-base w-full sm:w-auto"
               style={{ color: "#0a0b0c" }}
             >
-              Try Free Demo
+              See My Free Report
             </Link>
-            <a href="#how-it-works"
+            <Link
+              href="/analyze?sample=1"
               className="px-8 py-4 rounded-xl text-base font-medium w-full sm:w-auto text-center transition-all"
               style={{
                 border: "1px solid var(--border)",
                 color: "var(--text-secondary)",
               }}>
-              See How It Works ↓
-            </a>
+              Open Sample Demo
+            </Link>
           </div>
+
+          <p className="animate-fadeInUp delay-350 mb-14 text-sm font-medium" style={{ color: "var(--text-muted)" }}>
+            No card up front. No checkout wall. Try the product experience first.
+          </p>
 
           {/* Social proof */}
           <div className="animate-fadeInUp delay-400 flex flex-col sm:flex-row items-center justify-center gap-5 text-sm"
@@ -184,7 +215,7 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-              <span>No card required for first report</span>
+              <span>Free first report with no payment step</span>
             </div>
             <span className="hidden sm:block opacity-20">|</span>
             <div className="flex items-center gap-1.5">
@@ -193,7 +224,7 @@ export default function LandingPage() {
                   <path d="M6 0l1.5 4H12l-3.5 2.5L10 11 6 8.5 2 11l1.5-4.5L0 4h4.5z"/>
                 </svg>
               ))}
-              <span>Import a game or use a sample instantly</span>
+              <span>Choose your own game or test with a sample instantly</span>
             </div>
           </div>
         </div>
@@ -284,12 +315,13 @@ export default function LandingPage() {
               letterSpacing: "-0.02em",
               marginBottom: "1rem"
             }}>
-              Your Games Hold Every Clue<br />
-              <span className="gold-text">to Your Next Breakthrough.</span>
+              Get the Value Up Front.<br />
+              <span className="gold-text">Subscribe Only for More Depth.</span>
             </h2>
-            <p className="max-w-xl mx-auto" style={{ color: "var(--text-secondary)", lineHeight: 1.7 }}>
-              Most players review games hoping to feel better. Pablo shows you exactly
-              what to fix — no sugar-coating, no generic advice.
+            <p className="max-w-2xl mx-auto" style={{ color: "var(--text-secondary)", lineHeight: 1.7 }}>
+              Pablo is strongest when it shows the product before asking for commitment.
+              The landing page now frames the free report as the main offer, with the paid
+              plan positioned as the next step once players see their own recurring mistakes.
             </p>
           </div>
 
@@ -378,11 +410,12 @@ export default function LandingPage() {
               letterSpacing: "-0.02em",
               marginBottom: "1rem"
             }}>
-              Three Steps to a<br />
-              <span className="gold-text">Better Chess Player.</span>
+              A Free Product Experience<br />
+              <span className="gold-text">Before Any Purchase Decision.</span>
             </h2>
-            <p style={{ color: "var(--text-secondary)", lineHeight: 1.7, maxWidth: "440px", margin: "0 auto" }}>
-              No complicated setup. No fluff. Connect your account and get better.
+            <p style={{ color: "var(--text-secondary)", lineHeight: 1.7, maxWidth: "560px", margin: "0 auto" }}>
+              The funnel is simple: enter through a live demo, see a real coaching result,
+              and only then decide whether to unlock ongoing analysis.
             </p>
           </div>
 
@@ -508,11 +541,12 @@ export default function LandingPage() {
               letterSpacing: "-0.02em",
               marginBottom: "0.75rem"
             }}>
-              One Plan.<br />
-              <span className="gold-text">Everything Included.</span>
+              Start With the Free Report.<br />
+              <span className="gold-text">Pay Only for Ongoing Coaching.</span>
             </h2>
             <p style={{ color: "var(--text-secondary)", lineHeight: 1.7 }}>
-              Start free with one coaching preview, then subscribe for unlimited depth.
+              The subscription is for players who want unlimited scans, recurring pattern detection,
+              and weekly follow-through after the first preview proves useful.
             </p>
           </div>
 
@@ -532,7 +566,11 @@ export default function LandingPage() {
                 }}>$9</span>
                 <span className="text-base" style={{ color: "var(--text-muted)" }}>/month</span>
               </div>
-              <div className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>Billed monthly · cancel anytime</div>
+              <div className="text-sm mb-2" style={{ color: "var(--text-muted)" }}>Billed monthly · cancel anytime</div>
+              <div className="inline-flex mb-6 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider"
+                style={{ background: "rgba(201,168,76,0.1)", color: "var(--gold)" }}>
+                Buy after the preview, not before
+              </div>
               <div className="divider-gold mb-6" />
               <ul className="flex flex-col gap-3 mb-8">
                 {[
@@ -553,17 +591,26 @@ export default function LandingPage() {
               </ul>
             </div>
             <div className="p-8 pt-0">
-              <Link
-                href={PAYMENT_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-gold w-full flex items-center justify-center py-4 rounded-xl font-bold text-base"
-                style={{ color: "#0a0b0c" }}
-              >
-                Upgrade After Your Free Report
-              </Link>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Link
+                  href="/analyze"
+                  className="btn-gold flex items-center justify-center py-4 rounded-xl font-bold text-base"
+                  style={{ color: "#0a0b0c" }}
+                >
+                  Start Free First
+                </Link>
+                <Link
+                  href={PAYMENT_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center py-4 rounded-xl font-bold text-base"
+                  style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
+                >
+                  Go to Checkout
+                </Link>
+              </div>
               <p className="text-center mt-3 text-xs" style={{ color: "var(--text-muted)" }}>
-                Payment comes after the trial preview · Secure checkout via Stripe
+                Best path: use the free report first · Stripe checkout stays available for ready buyers
               </p>
             </div>
             <div className="px-8 pb-8">
@@ -572,7 +619,7 @@ export default function LandingPage() {
                 background: "rgba(201,168,76,0.06)",
                 color: "var(--text-secondary)"
               }}>
-                <strong style={{ color: "var(--text-primary)" }}>Recommended product change:</strong> treat the first imported game as a no-signup demo, then gate recurring history analysis, weekly reports, and unlimited scans behind the subscription.
+                <strong style={{ color: "var(--text-primary)" }}>UX recommendation:</strong> keep the paid CTA secondary on the landing page, and trigger the upgrade ask only after the user sees a finished analysis with locked deeper insights below the fold.
               </div>
             </div>
           </div>
@@ -610,19 +657,28 @@ export default function LandingPage() {
             <span className="gold-text">Are Already In Your Games.</span>
           </h2>
           <p className="mb-10 text-lg" style={{ color: "var(--text-secondary)", lineHeight: 1.7 }}>
-            Stop replaying games hoping for insight.<br />
-            Let Pablo find what you can&rsquo;t see.
+            Skip the sales friction. Enter through the product, get one useful report,
+            and upgrade only if Pablo earns it.
           </p>
-          <Link
-            href="/analyze?sample=1"
-            className="btn-gold inline-flex items-center gap-3 px-10 py-5 rounded-xl font-bold text-lg"
-            style={{ color: "#0a0b0c" }}
-          >
-            Try the Free Demo
-            <span>→</span>
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/analyze"
+              className="btn-gold inline-flex items-center gap-3 px-10 py-5 rounded-xl font-bold text-lg"
+              style={{ color: "#0a0b0c" }}
+            >
+              Get My Free Report
+              <span>→</span>
+            </Link>
+            <Link
+              href="/analyze?sample=1"
+              className="inline-flex items-center gap-3 px-10 py-5 rounded-xl font-bold text-lg"
+              style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
+            >
+              Try Sample Game
+            </Link>
+          </div>
           <p className="mt-4 text-sm" style={{ color: "var(--text-muted)" }}>
-            See one coaching report first. Upgrade only if you want more.
+            First report is free and card-free. Subscription is for deeper ongoing coaching.
           </p>
         </div>
       </section>
