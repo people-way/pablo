@@ -1,5 +1,6 @@
 import Form from "next/form";
 import Link from "next/link";
+import { GameAnalysisCard } from "@/components/game-analysis-card";
 import {
   ChessComImportError,
   importRecentChessComGames,
@@ -13,7 +14,7 @@ type AnalyzePageProps = {
 export const metadata = {
   title: "Analyze Recent Games | Pablo",
   description:
-    "Import your most recent Chess.com games and inspect the raw game history Pablo will analyze next.",
+    "Import your most recent Chess.com games and run Pablo's first-pass blunder scan.",
 };
 
 function formatDate(value: string | null) {
@@ -116,8 +117,8 @@ export default async function AnalyzePage({ searchParams }: AnalyzePageProps) {
               style={{ color: "var(--text-secondary)" }}
             >
               Start with a public username. Pablo pulls the latest archive month,
-              keeps the 10 most recent games, and exposes the PGNs and metadata
-              needed for analysis.
+              keeps the 10 most recent games, and lets you run an inline blunder
+              scan on each PGN.
             </p>
           </div>
 
@@ -336,6 +337,11 @@ export default async function AnalyzePage({ searchParams }: AnalyzePageProps) {
                         ) : null}
                       </div>
 
+                      <GameAnalysisCard
+                        pgn={game.pgn}
+                        perspective={game.color}
+                      />
+
                       <details
                         className="rounded-2xl border"
                         style={{
@@ -393,8 +399,8 @@ export default async function AnalyzePage({ searchParams }: AnalyzePageProps) {
             </p>
             <p className="mt-3 max-w-2xl leading-7" style={{ color: "var(--text-secondary)" }}>
               Enter a public Chess.com username to pull the latest monthly archive.
-              The next task can analyze these PGNs with an engine and start
-              clustering mistake patterns.
+              Each imported game can then be scanned for obvious blunders,
+              hanging pieces, and missed mating shots.
             </p>
           </section>
         )}
