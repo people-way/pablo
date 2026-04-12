@@ -45,6 +45,7 @@ export default function RootLayout({
       </body>
       <Script
         src="https://phospho-nanocorp-prod--nanocorp-api-fastapi-app.modal.run/beacon/snippet.js?s=pablo"
+        defer
       />
     </html>
   );

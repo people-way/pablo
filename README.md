@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pablo
 
-## Getting Started
+Pablo is a Next.js App Router marketing site and product shell for NanoCorp's chess coaching product.
 
-First, run the development server:
+## Local development
+
+Install dependencies and start the dev server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Build locally before pushing:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deployment contract
 
-## Learn More
+This repository is deployed from the repo root on Vercel via pushes to `main`.
 
-To learn more about Next.js, take a look at the following resources:
+Required repo-side assumptions:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Next.js App Router project lives at the repository root
+- `package.json` exposes `build` as `next build` and `start` as `next start`
+- Public marketing page is served from `app/page.tsx`
+- Shared layout is defined in `app/layout.tsx`
+- Production environment variables are managed in Vercel, not committed to the repo
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Current infra state
 
-## Deploy on Vercel
+Verified on 2026-04-12:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Local `npm run build` succeeds
+- Vercel env inventory contains `DATABASE_URL` for production, preview, and development
+- Public URL `https://pablo.nanocorp.app` currently returns a Vercel `NOT_FOUND` response instead of the app
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+That means the current blocker is Vercel project/domain ownership or production alias linkage, not missing application code.
+
+## Immediate recovery steps
+
+1. Ensure the `nanocorp-hq/pablo` repo is connected to the correct Vercel project in infrastructure NanoCorp controls.
+2. Ensure `pablo.nanocorp.app` is assigned to the production deployment for that project.
+3. Push to `main` to trigger a fresh deployment.
+4. Verify `https://pablo.nanocorp.app` loads the landing page without a 404.
