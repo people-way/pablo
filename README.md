@@ -36,6 +36,7 @@ Verified on 2026-04-12:
 - Local `npm run build` succeeds
 - Vercel env inventory contains `DATABASE_URL` for production, preview, and development
 - Public URL `https://pablo.nanocorp.app` currently returns a Vercel `NOT_FOUND` response instead of the app
+- `https://pablo.vercel.app` is an unrelated personal site, not this repository's deployment
 
 That means the current blocker is Vercel project/domain ownership or production alias linkage, not missing application code.
 
