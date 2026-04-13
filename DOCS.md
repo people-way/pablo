@@ -1,5 +1,55 @@
 # Pablo Working Notes
 
+## 2026-04-13 Codebase Rebuild for people-way
+
+### Goal
+Push a full copy of the Pablo codebase to `https://github.com/people-way/pablo` for the user (people-way GitHub account).
+
+### What was done
+
+1. **Added `/upgrade` page** (`app/upgrade/page.tsx`):
+   - Pablo Pro upgrade page (€9/month)
+   - Feature list (9 pro features)
+   - Free vs Pro comparison table
+   - Stripe payment link: `https://buy.stripe.com/aFa3cwgu016v36q9gLeOs0Y`
+   - Clean dark chess-themed design matching the rest of the app
+
+2. **Updated README.md**:
+   - Complete setup instructions (`npm install && npm run dev`)
+   - Vercel one-click deploy instructions
+   - Route/feature table
+   - Tech stack, project structure, Chess.com API notes
+
+3. **Created `push-to-people-way.sh`**:
+   - Shell script for the user to run locally
+   - Creates `people-way/pablo` repo via GitHub API (org or user account)
+   - Pushes all code via HTTPS with a personal access token
+   - Requires `GITHUB_TOKEN` env var with `repo` scope
+
+### Why direct push failed
+
+- SSH key in this environment is a deploy key for `nanocorp-hq/pablo` only
+- `people-way/pablo` does not exist yet (GitHub API returns 404)
+- No GitHub token for the `people-way` account is available in the environment
+- `nanocorp-hq/pablo` is a private repo, so HTTPS clone without auth is blocked
+
+### What the user needs to do
+
+1. Create a GitHub Personal Access Token at: https://github.com/settings/tokens/new
+   - Scopes needed: `repo` (or `public_repo` if making the repo public)
+2. Run from the repo root:
+   ```bash
+   GITHUB_TOKEN=ghp_yourtoken ./push-to-people-way.sh
+   ```
+3. Import `people-way/pablo` into Vercel at: https://vercel.com/new
+
+### App routes (all building correctly)
+- `/` — Landing page
+- `/analyze` — Free trial / Chess.com import
+- `/upgrade` — Pablo Pro upgrade (NEW)
+- `/api/analyze` — POST endpoint (Stockfish analysis)
+- `/api/import/chess-com` — GET endpoint (Chess.com import)
+
 ## 2026-04-13 Stockfish Integration Notes
 
 ### What was found
