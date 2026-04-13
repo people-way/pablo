@@ -1,48 +1,102 @@
-# Pablo
+# Pablo — Your Personal Chess Coach
 
-Pablo is a Next.js App Router marketing site and product shell for NanoCorp's chess coaching product.
+Pablo is a Next.js chess coaching app that analyzes your games with Stockfish engine-level depth and gives you actionable improvement tips.
 
-## Local development
+## Features
 
-Install dependencies and start the dev server:
+- **Free trial** — analyze your first game with no credit card required
+- **Chess.com import** — paste your username and instantly import recent games
+- **Stockfish 18 analysis** — blunder detection, centipawn loss, mistake classification
+- **Pablo Pro** (€9/month) — unlimited analysis, full history, weekly progress reports
+
+## Pages
+
+| Route | Description |
+|-------|-------------|
+| `/` | Landing page with hero, how-it-works, and pricing |
+| `/analyze` | Free trial — import Chess.com games or paste PGN |
+| `/upgrade` | Pablo Pro upgrade page with feature comparison |
+
+## Quick start
 
 ```bash
 npm install
 npm run dev
 ```
 
-Build locally before pushing:
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Build
 
 ```bash
 npm run build
+npm start
 ```
 
-## Deployment contract
+## Deploy to Vercel
 
-This repository is deployed from the repo root on Vercel via pushes to `main`.
+### One-click import
 
-Required repo-side assumptions:
+1. Go to [vercel.com/new](https://vercel.com/new)
+2. Import this GitHub repository (`people-way/pablo`)
+3. Vercel auto-detects Next.js — click **Deploy**
+4. Your site will be live at a `*.vercel.app` URL
 
-- Next.js App Router project lives at the repository root
-- `package.json` exposes `build` as `next build` and `start` as `next start`
-- Public marketing page is served from `app/page.tsx`
-- Shared layout is defined in `app/layout.tsx`
-- Production environment variables are managed in Vercel, not committed to the repo
+### Environment variables
 
-## Current infra state
+No environment variables are required for the MVP. The app is fully stateless.
 
-Verified on 2026-04-12:
+| Variable | Required | Description |
+|----------|----------|-------------|
+| _(none)_ | — | No env vars needed for basic operation |
 
-- Local `npm run build` succeeds
-- Vercel env inventory contains `DATABASE_URL` for production, preview, and development
-- Public URL `https://pablo.nanocorp.app` currently returns a Vercel `NOT_FOUND` response instead of the app
-- `https://pablo.vercel.app` is an unrelated personal site, not this repository's deployment
+If you add a database or authentication later, set variables in the Vercel dashboard under **Settings → Environment Variables**.
 
-That means the current blocker is Vercel project/domain ownership or production alias linkage, not missing application code.
+## Stripe payment link
 
-## Immediate recovery steps
+The upgrade page links to `https://buy.stripe.com/aFa3cwgu016v36q9gLeOs0Y`.
 
-1. Ensure the `nanocorp-hq/pablo` repo is connected to the correct Vercel project in infrastructure NanoCorp controls.
-2. Ensure `pablo.nanocorp.app` is assigned to the production deployment for that project.
-3. Push to `main` to trigger a fresh deployment.
-4. Verify `https://pablo.nanocorp.app` loads the landing page without a 404.
+To update it, edit the `PAYMENT_LINK` constant in:
+- `app/page.tsx`
+- `app/upgrade/page.tsx`
+
+## Tech stack
+
+- [Next.js 16](https://nextjs.org/) — App Router, TypeScript
+- [Tailwind CSS v4](https://tailwindcss.com/)
+- [chess.js](https://github.com/jhlywa/chess.js) — PGN parsing and move validation
+- [Stockfish 18](https://stockfishchess.org/) — engine analysis (Node.js runtime, server-side only)
+
+## Project structure
+
+```
+app/
+  page.tsx              # Landing page
+  analyze/
+    page.tsx            # Free trial / import flow
+  upgrade/
+    page.tsx            # Pablo Pro upgrade page
+  api/
+    analyze/
+      route.ts          # POST — analyze PGN with Stockfish
+    import/
+      chess-com/
+        route.ts        # GET — fetch games from Chess.com API
+components/
+  game-analysis-card.tsx  # Game card + analysis UI
+lib/
+  chess-analysis.ts     # Stockfish analysis pipeline
+  chess-com.ts          # Chess.com API helpers
+```
+
+## Chess.com API
+
+Pablo fetches games from the public Chess.com API — no authentication needed:
+
+```
+GET https://api.chess.com/pub/player/{username}/games/{year}/{month}
+```
+
+## License
+
+MIT
