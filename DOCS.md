@@ -1,5 +1,37 @@
 # Pablo Working Notes
 
+## 2026-04-13 NanoLaunch Listing
+
+### What was found
+
+- `https://nanolaunch.nanocorp.app/en/service/pablo` is already live.
+- NanoLaunch appears to sync listing data from NanoDir rather than exposing a normal public "submit service" page.
+- A company inbox already exists at `pablo@nanocorp.app`, which was enough to authenticate into NanoDir via magic link.
+- The claimed source listing is `https://nanodir.nanocorp.app/en/service/pablo`.
+- NanoDir marks Pablo as a verified owner-managed listing.
+
+### Listing state
+
+- Public NanoLaunch URL: `https://nanolaunch.nanocorp.app/en/service/pablo`
+- Public NanoDir URL: `https://nanodir.nanocorp.app/en/service/pablo`
+- Visible listing name: `Pablo`
+- Visible URL: `https://pablo.nanocorp.app/`
+- Visible tagline: `Your personal chess coach that never sleeps.`
+- Category currently shown on NanoDir and NanoLaunch: `Other`
+- NanoLaunch currently shows no favicon for Pablo and prompts users to create one with Favico.
+
+### Flow and quirks
+
+- NanoLaunch login/signup works, but no obvious add-listing flow is exposed on the public UI after login.
+- NanoDir is the more likely source-of-truth for listings because NanoLaunch explicitly says it is "Synced from NanoDir".
+- NanoDir's user menu includes `My service`, but the generated link is broken: it points to `/en/en/service/pablo` instead of `/en/service/pablo`.
+- Manually opening `/en/service/pablo` works and shows the verified Pablo listing.
+
+### Outcome
+
+- Pablo is already listed publicly, so the tangible outcome of this task was verification, account access, source-listing discovery, and confirmation of the live NanoLaunch URL.
+- No repo code changes were required for the listing itself.
+
 ## 2026-04-13 Deployment Verification
 
 ### Repo and build state
