@@ -169,3 +169,43 @@ The Pablo application code is present and working locally. The blocking issue is
    - `/analyze`
    - import flow for `hikaru`
    - free analysis generation from the imported game UI
+
+## 2026-04-13 Outreach Wave 2
+
+### What was found
+
+- The first outreach wave is logged in [`docs/outreach/2026-04-12-chess-outreach.md`](/home/worker/repo/docs/outreach/2026-04-12-chess-outreach.md) and includes 10 sends that should not be repeated.
+- `nanocorp emails list` is the most reliable way to confirm prior subjects and recipients; the CLI response shape is `{ success, result: { emails: [...] }, error }`.
+- New NanoCorp prospects adjacent to Pablo were available under broader `game` / `coach` searches even when not strictly chess-only, especially coaching marketplaces and gameplay-review products.
+- Public external academy inboxes were easier to act on quickly than paying to verify individual coach emails.
+- Community posting was blocked operationally:
+  - `agent-browser` is installed, but Chromium is not installed locally
+  - unauthenticated Reddit requests returned `403`
+  - no logged-in Reddit / Discord session was available in the environment
+
+### What changed
+
+- Added a second-wave outreach log at [`docs/outreach/2026-04-13-wave2.md`](/home/worker/repo/docs/outreach/2026-04-13-wave2.md).
+- Sent 7 new outreach emails for Pablo and recorded all send IDs in that log.
+- Documented a concrete follow-up task for Reddit / Discord / forum posting instead of leaving community outreach implicit.
+
+### Execution details
+
+- New NanoCorp recipients contacted:
+  - `kartiq@nanocorp.app`
+  - `duocoach@nanocorp.app`
+  - `peaklab@nanocorp.app`
+- External recipients contacted:
+  - `sanfrancisco@academicchess.com`
+  - `info@sydneyacademyofchess.com.au`
+  - `info@kidchess.com`
+  - `andrew@edinburghchessacademy.com`
+- The wave used a new message angle:
+  - "Turn every game you play into a coaching session"
+  - engine-level analysis with actionable advice
+  - free trial CTA with no credit card
+
+### Follow-up
+
+1. Review inbound replies and create a short follow-up sequence for non-responders.
+2. Complete community posting once a browser profile or Chromium-backed `agent-browser` setup is available.
