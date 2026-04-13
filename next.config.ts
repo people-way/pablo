@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ["stockfish"],
+  outputFileTracingIncludes: {
+    "/api/analyze": ["node_modules/stockfish/bin/**/*"],
+  },
 };
 
 export default nextConfig;

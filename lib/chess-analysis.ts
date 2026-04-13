@@ -1,38 +1,65 @@
-import { Chess, type Move, type PieceSymbol } from "chess.js";
+import { Chess } from "chess.js";
+import initStockfish from "stockfish";
 
-const PIECE_VALUES: Record<PieceSymbol, number> = {
-  p: 1,
-  n: 3,
-  b: 3,
-  r: 5,
-  q: 9,
-  k: 100,
+const ENGINE_FLAVOR = "lite-single";
+const ENGINE_DEPTH = 10;
+const ENGINE_HASH_MB = 16;
+const ENGINE_TIMEOUT_MS = 15_000;
+const MATE_SENTINEL_CP = 1_000;
+const MAX_MATE_DISTANCE_CP = 500;
+
+type InternalColor = "w" | "b";
+type ScoreKind = "cp" | "mate";
+
+type StockfishInstance = {
+  listener?: (line: string) => void;
+  sendCommand: (command: string) => void;
 };
 
-const MATE_SEARCH_BUDGET = 16000;
+type StockfishFactory = (
+  enginePath?: string,
+) => Promise<StockfishInstance> | StockfishInstance;
 
-type GamePhase = "opening" | "middlegame" | "endgame";
-type BlunderMotif = "mate" | "material";
-type InternalColor = "w" | "b";
+type EngineScore =
+  | {
+      kind: "cp";
+      value: number;
+    }
+  | {
+      kind: "mate";
+      value: number;
+    };
+
+type ParsedInfoScore = {
+  depth: number;
+  score: EngineScore;
+};
+
+type EngineEvaluation = {
+  bestmove: string | null;
+  score: EngineScore;
+};
 
 export type AnalysisPerspective = "white" | "black";
+export type MoveClassification = "blunder" | "mistake" | "inaccuracy";
 
-export type AnalysisBlunder = {
+export type AnalysisFinding = {
   move_number: number;
   move: string;
+  color: AnalysisPerspective;
+  classification: MoveClassification;
+  centipawn_loss: number;
   description: string;
 };
 
 export type GameAnalysisReport = {
   total_moves: number;
-  blunders: AnalysisBlunder[];
+  blunders: number;
+  mistakes: number;
+  inaccuracies: number;
+  avg_centipawn_loss: number;
   summary: string;
-};
-
-type InternalBlunder = AnalysisBlunder & {
-  severity: number;
-  phase: GamePhase;
-  motif: BlunderMotif;
+  findings: AnalysisFinding[];
 };
 
 export class ChessAnalysisError extends Error {
@@ -47,10 +74,146 @@ export class ChessAnalysisError extends Error {
   }
 }
 
-export function analyzePgn(
+class StockfishClient {
+  private enginePromise: Promise<StockfishInstance>;
+  private queue: Promise<unknown> = Promise.resolve();
+  private initPromise: Promise<void>;
+
+  constructor() {
+    const factory = initStockfish as unknown as StockfishFactory;
+    this.enginePromise = Promise.resolve(factory(ENGINE_FLAVOR));
+    this.initPromise = this.enqueue(async () => {
+      const engine = await this.enginePromise;
+
+      await this.waitForLine(
+        engine,
+        (line) => line === "uciok",
+        () => {
+          engine.sendCommand("uci");
+        },
+      );
+
+      await this.waitForLine(
+        engine,
+        (line) => line === "readyok",
+        () => {
+          engine.sendCommand(`setoption name Hash value ${ENGINE_HASH_MB}`);
+          engine.sendCommand("isready");
+        },
+      );
+    });
+  }
+
+  async beginGame() {
+    return this.enqueue(async () => {
+      await this.initPromise;
+      const engine = await this.enginePromise;
+
+      await this.waitForLine(
+        engine,
+        (line) => line === "readyok",
+        () => {
+          engine.sendCommand("ucinewgame");
+          engine.sendCommand("isready");
+        },
+      );
+    });
+  }
+
+  async evaluateFen(fen: string, depth: number) {
+    return this.enqueue(async () => {
+      await this.initPromise;
+      const engine = await this.enginePromise;
+      let latestScore: ParsedInfoScore | undefined;
+
+      const bestmoveLine = await this.waitForLine(
+        engine,
+        (line) => line.startsWith("bestmove "),
+        () => {
+          engine.sendCommand(`position fen ${fen}`);
+          engine.sendCommand(`go depth ${depth}`);
+        },
+        (line) => {
+          const parsed = parseInfoScore(line);
+
+          if (!parsed) {
+            return;
+          }
+
+          if (!latestScore || parsed.depth >= latestScore.depth) {
+            latestScore = parsed;
+          }
+        },
+      );
+
+      const finalScore: EngineScore = latestScore
+        ? latestScore.score
+        : { kind: "cp", value: 0 };
+
+      return {
+        bestmove: bestmoveLine.split(/\s+/)[1] ?? null,
+        score: finalScore,
+      } satisfies EngineEvaluation;
+    });
+  }
+
+  private enqueue<T>(task: () => Promise<T>) {
+    const run = this.queue.then(task, task);
+    this.queue = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
+  private waitForLine(
+    engine: StockfishInstance,
+    predicate: (line: string) => boolean,
+    setup: () => void,
+    onLine?: (line: string) => void,
+  ) {
+    return new Promise<string>((resolve, reject) => {
+      const previousListener = engine.listener;
+      const timeout = setTimeout(() => {
+        engine.listener = previousListener;
+        reject(new Error("Stockfish timed out while analyzing the game."));
+      }, ENGINE_TIMEOUT_MS);
+
+      engine.listener = (rawLine) => {
+        const line = normalizeEngineLine(rawLine);
+
+        if (!line) {
+          return;
+        }
+
+        onLine?.(line);
+
+        if (!predicate(line)) {
+          return;
+        }
+
+        clearTimeout(timeout);
+        engine.listener = previousListener;
+        resolve(line);
+      };
+
+      try {
+        setup();
+      } catch (error) {
+        clearTimeout(timeout);
+        engine.listener = previousListener;
+        reject(error);
+      }
+    });
+  }
+}
+
+let stockfishClient: StockfishClient | undefined;
+
+export async function analyzePgn(
   rawPgn: string,
   perspective?: AnalysisPerspective,
-): GameAnalysisReport {
+): Promise<GameAnalysisReport> {
   const pgn = rawPgn.trim();
 
   if (!pgn) {
@@ -80,81 +243,107 @@ export function analyzePgn(
   }
 
   const normalizedPerspective = normalizePerspective(perspective);
-  const searchBudget = { remaining: MATE_SEARCH_BUDGET };
-  const blunders: InternalBlunder[] = [];
+  const relevantMoves = moves.filter(
+    (move) => !normalizedPerspective || move.color === normalizedPerspective,
+  );
+
+  if (relevantMoves.length === 0) {
+    return {
+      total_moves: 0,
+      blunders: 0,
+      mistakes: 0,
+      inaccuracies: 0,
+      avg_centipawn_loss: 0,
+      summary: "No moves matched the requested perspective in this PGN.",
+      findings: [],
+    };
+  }
+
+  const positions = [moves[0].before, ...moves.map((move) => move.after)];
+  const evaluationCache = new Map<string, EngineEvaluation>();
+  const evaluations: EngineEvaluation[] = [];
+
+  try {
+    const engine = getStockfishClient();
+    await engine.beginGame();
+
+    for (const fen of positions) {
+      let evaluation = evaluationCache.get(fen);
+
+      if (!evaluation) {
+        evaluation = await engine.evaluateFen(fen, ENGINE_DEPTH);
+        evaluationCache.set(fen, evaluation);
+      }
+
+      evaluations.push(evaluation);
+    }
+  } catch {
+    throw new ChessAnalysisError(
+      "engine_unavailable",
+      500,
+      "Stockfish analysis failed for this PGN.",
+    );
+  }
+
+  const findings: AnalysisFinding[] = [];
+  let totalCentipawnLoss = 0;
 
   for (const [index, move] of moves.entries()) {
     if (normalizedPerspective && move.color !== normalizedPerspective) {
       continue;
     }
 
-    const before = new Chess(move.before);
-    const after = new Chess(move.after);
     const moveNumber = Math.floor(index / 2) + 1;
-    const phase = determinePhase(moveNumber);
-    const findings: Array<{
-      description: string;
-      severity: number;
-      motif: BlunderMotif;
-    }> = [];
+    const beforeScore = evaluations[index].score;
+    const afterScore = flipScorePerspective(evaluations[index + 1].score);
+    const centipawnLoss = calculateCentipawnLoss(beforeScore, afterScore);
+    totalCentipawnLoss += centipawnLoss;
 
-    const mateInOne = findMateInOneMoves(before, searchBudget);
-    if (mateInOne.length > 0 && !matchesMove(move, mateInOne)) {
-      findings.push({
-        description: `You missed checkmate in 1. The win was ${formatWinningLine(mateInOne)}.`,
-        severity: 100,
-        motif: "mate",
-      });
-    } else if (mateInOne.length === 0) {
-      const mateInTwo = findMateInTwoMoves(before, searchBudget);
-      if (mateInTwo.length > 0 && !matchesMove(move, mateInTwo)) {
-        findings.push({
-          description: `You missed a forced mate in 2. The attack starts with ${formatWinningLine(mateInTwo)}.`,
-          severity: 78,
-          motif: "mate",
-        });
-      }
-    }
+    const classification = classifyCentipawnLoss(centipawnLoss);
 
-    const opponentMate = findMateInOneMoves(after, searchBudget);
-    if (opponentMate.length > 0) {
-      findings.push({
-        description: `This allows mate in 1 with ${formatWinningLine(opponentMate)}.`,
-        severity: 96,
-        motif: "mate",
-      });
-    }
-
-    const materialBlunder = findMaterialBlunder(after);
-    if (materialBlunder) {
-      findings.push(materialBlunder);
-    }
-
-    if (findings.length === 0) {
+    if (!classification) {
       continue;
     }
 
-    findings.sort((left, right) => right.severity - left.severity);
-    const topFindings = findings.slice(0, 2);
-
-    blunders.push({
+    findings.push({
       move_number: moveNumber,
       move: move.san,
-      description: topFindings.map((finding) => finding.description).join(" "),
-      severity: topFindings[0]?.severity ?? 0,
-      phase,
-      motif: topFindings[0]?.motif ?? "material",
+      color: colorToPerspective(move.color),
+      classification,
+      centipawn_loss: centipawnLoss,
+      description: describeFinding(classification, centipawnLoss, beforeScore, afterScore),
     });
   }
 
+  const blunders = findings.filter(
+    (finding) => finding.classification === "blunder",
+  ).length;
+  const mistakes = findings.filter(
+    (finding) => finding.classification === "mistake",
+  ).length;
+  const inaccuracies = findings.filter(
+    (finding) => finding.classification === "inaccuracy",
+  ).length;
+  const avgCentipawnLoss = Number(
+    (totalCentipawnLoss / relevantMoves.length).toFixed(1),
+  );
+
   return {
-    total_moves: moves.length,
-    blunders: blunders.map(({ move_number, move, description }) => ({
-      move_number,
-      move,
-      description,
-    })),
-    summary: buildSummary(blunders, normalizedPerspective),
+    total_moves: relevantMoves.length,
+    blunders,
+    mistakes,
+    inaccuracies,
+    avg_centipawn_loss: avgCentipawnLoss,
+    summary: buildSummary({
+      avgCentipawnLoss,
+      blunders,
+      mistakes,
+      inaccuracies,
+      findings,
+      perspective: normalizedPerspective,
+      totalMoves: relevantMoves.length,
+    }),
+    findings,
   };
 }
 
@@ -172,224 +361,147 @@ function normalizePerspective(
   return undefined;
 }
 
-function determinePhase(moveNumber: number): GamePhase {
-  if (moveNumber <= 10) {
-    return "opening";
+function getStockfishClient() {
+  if (!stockfishClient) {
+    stockfishClient = new StockfishClient();
   }
 
-  if (moveNumber <= 30) {
-    return "middlegame";
+  return stockfishClient;
+}
+
+function normalizeEngineLine(rawLine: string) {
+  return rawLine.trim();
+}
+
+function parseInfoScore(line: string): ParsedInfoScore | null {
+  if (!line.startsWith("info ")) {
+    return null;
   }
 
-  return "endgame";
-}
+  const scoreMatch = line.match(/\bscore (cp|mate) (-?\d+)/);
+  const depthMatch = line.match(/\bdepth (\d+)/);
 
-function buildSummary(
-  blunders: InternalBlunder[],
-  perspective?: InternalColor,
-): string {
-  if (blunders.length === 0) {
-    return perspective
-      ? "No obvious blunders were detected by the v1 scan."
-      : "No obvious blunders were detected in this game by the v1 scan.";
-  }
-
-  const phaseCounts = countBy(blunders.map((blunder) => blunder.phase));
-  const motifCounts = countBy(blunders.map((blunder) => blunder.motif));
-  const topPhase = dominantKey(phaseCounts);
-  const topMotif = dominantKey(motifCounts);
-  const subject = perspective ? "You" : "This game";
-  const motifSummary =
-    topMotif === "mate"
-      ? "mostly from missed mating shots and king safety."
-      : "mostly from hanging pieces and loose material.";
-
-  return `${subject} blundered ${blunders.length} time${blunders.length === 1 ? "" : "s"}, mostly in the ${topPhase}. ${capitalize(motifSummary)}`;
-}
-
-function countBy<T extends string>(values: T[]) {
-  const counts = new Map<T, number>();
-
-  for (const value of values) {
-    counts.set(value, (counts.get(value) ?? 0) + 1);
-  }
-
-  return counts;
-}
-
-function dominantKey<T extends string>(counts: Map<T, number>): T {
-  let winner: T | undefined;
-  let winnerCount = -1;
-
-  for (const [value, count] of counts.entries()) {
-    if (count > winnerCount) {
-      winner = value;
-      winnerCount = count;
-    }
-  }
-
-  if (!winner) {
-    throw new Error("Expected at least one counted value.");
-  }
-
-  return winner;
-}
-
-function capitalize(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-function matchesMove(currentMove: Move, winningMoves: Move[]) {
-  return winningMoves.some((winningMove) => winningMove.san === currentMove.san);
-}
-
-function formatWinningLine(moves: Move[]) {
-  return moves
-    .slice(0, 2)
-    .map((move) => move.san)
-    .join(" or ");
-}
-
-function spendBudget(budget: { remaining: number }) {
-  if (budget.remaining <= 0) {
-    return false;
-  }
-
-  budget.remaining -= 1;
-  return true;
-}
-
-function findMateInOneMoves(chess: Chess, budget: { remaining: number }) {
-  const mates: Move[] = [];
-
-  for (const move of chess.moves({ verbose: true })) {
-    if (!spendBudget(budget)) {
-      return [];
-    }
-
-    const resultingPosition = new Chess(move.after);
-    if (resultingPosition.isCheckmate()) {
-      mates.push(move);
-    }
-  }
-
-  return mates;
-}
-
-function findMateInTwoMoves(chess: Chess, budget: { remaining: number }) {
-  const winningMoves: Move[] = [];
-
-  for (const firstMove of chess.moves({ verbose: true })) {
-    if (!spendBudget(budget)) {
-      return [];
-    }
-
-    const afterFirstMove = new Chess(firstMove.after);
-    const replies = afterFirstMove.moves({ verbose: true });
-
-    if (replies.length === 0) {
-      continue;
-    }
-
-    let forcesMate = true;
-
-    for (const reply of replies) {
-      if (!spendBudget(budget)) {
-        return [];
-      }
-
-      const afterReply = new Chess(reply.after);
-      if (findMateInOneMoves(afterReply, budget).length === 0) {
-        forcesMate = false;
-        break;
-      }
-    }
-
-    if (forcesMate) {
-      winningMoves.push(firstMove);
-    }
-  }
-
-  return winningMoves;
-}
-
-function findMaterialBlunder(afterMove: Chess): {
-  description: string;
-  severity: number;
-  motif: BlunderMotif;
-} | null {
-  const replies = afterMove.moves({ verbose: true });
-  let best:
-    | {
-        description: string;
-        severity: number;
-        motif: BlunderMotif;
-        netGain: number;
-      }
-    | null = null;
-
-  for (const reply of replies) {
-    if (!reply.isCapture() || !reply.captured) {
-      continue;
-    }
-
-    const capturedValue = PIECE_VALUES[reply.captured];
-    if (capturedValue < 3) {
-      continue;
-    }
-
-    const afterCapture = new Chess(reply.after);
-    const recaptureExists = afterCapture
-      .moves({ verbose: true })
-      .some((response) => response.isCapture() && response.to === reply.to);
-    const attackerValue = PIECE_VALUES[reply.piece];
-    const netGain = recaptureExists ? capturedValue - attackerValue : capturedValue;
-
-    if (netGain < 3) {
-      continue;
-    }
-
-    const pieceName = describePiece(reply.captured);
-    const description = recaptureExists
-      ? `This loses your ${pieceName}. ${reply.san} wins material immediately.`
-      : `You left your ${pieceName} hanging. ${reply.san} wins it immediately.`;
-    const severity =
-      capturedValue >= 9 ? 88 : capturedValue >= 5 ? 72 : 58;
-
-    if (!best || netGain > best.netGain || severity > best.severity) {
-      best = {
-        description,
-        severity,
-        motif: "material",
-        netGain,
-      };
-    }
-  }
-
-  if (!best) {
+  if (!scoreMatch || !depthMatch) {
     return null;
   }
 
   return {
-    description: best.description,
-    severity: best.severity,
-    motif: best.motif,
+    depth: Number.parseInt(depthMatch[1], 10),
+    score: {
+      kind: scoreMatch[1] as ScoreKind,
+      value: Number.parseInt(scoreMatch[2], 10),
+    },
   };
 }
 
-function describePiece(piece: PieceSymbol) {
-  switch (piece) {
-    case "n":
-      return "knight";
-    case "b":
-      return "bishop";
-    case "r":
-      return "rook";
-    case "q":
-      return "queen";
-    case "k":
-      return "king";
-    default:
-      return "pawn";
+function flipScorePerspective(score: EngineScore): EngineScore {
+  return {
+    kind: score.kind,
+    value: score.value * -1,
+  };
+}
+
+function calculateCentipawnLoss(before: EngineScore, after: EngineScore) {
+  const loss = scoreToCentipawns(before) - scoreToCentipawns(after);
+  return Math.min(1_000, Math.max(0, Math.round(loss)));
+}
+
+function scoreToCentipawns(score: EngineScore) {
+  if (score.kind === "cp") {
+    return score.value;
   }
+
+  const distancePenalty = Math.min(
+    Math.max(Math.abs(score.value) - 1, 0) * 25,
+    MAX_MATE_DISTANCE_CP,
+  );
+  return Math.sign(score.value) * (MATE_SENTINEL_CP - distancePenalty);
+}
+
+function classifyCentipawnLoss(
+  centipawnLoss: number,
+): MoveClassification | undefined {
+  if (centipawnLoss > 200) {
+    return "blunder";
+  }
+
+  if (centipawnLoss > 100) {
+    return "mistake";
+  }
+
+  if (centipawnLoss > 50) {
+    return "inaccuracy";
+  }
+
+  return undefined;
+}
+
+function colorToPerspective(color: InternalColor): AnalysisPerspective {
+  return color === "w" ? "white" : "black";
+}
+
+function describeFinding(
+  classification: MoveClassification,
+  centipawnLoss: number,
+  before: EngineScore,
+  after: EngineScore,
+) {
+  if (after.kind === "mate" && after.value < 0) {
+    return `${capitalize(classification)}: this allows a forced mate in ${Math.abs(after.value)}.`;
+  }
+
+  if (before.kind === "mate" && before.value > 0 && after.kind !== "mate") {
+    return `${capitalize(classification)}: this throws away a forced mate.`;
+  }
+
+  return `${capitalize(classification)}: the engine swing is ${formatScore(before)} to ${formatScore(after)} (${centipawnLoss} cp lost).`;
+}
+
+function formatScore(score: EngineScore) {
+  if (score.kind === "mate") {
+    return `${score.value > 0 ? "" : "-"}M${Math.abs(score.value)}`;
+  }
+
+  const pawns = score.value / 100;
+  const prefix = pawns > 0 ? "+" : "";
+  return `${prefix}${pawns.toFixed(1)}`;
+}
+
+function buildSummary({
+  avgCentipawnLoss,
+  blunders,
+  mistakes,
+  inaccuracies,
+  findings,
+  perspective,
+  totalMoves,
+}: {
+  avgCentipawnLoss: number;
+  blunders: number;
+  mistakes: number;
+  inaccuracies: number;
+  findings: AnalysisFinding[];
+  perspective?: InternalColor;
+  totalMoves: number;
+}) {
+  const subject = perspective ? "You" : "This game";
+
+  if (findings.length === 0) {
+    return `${subject} stayed within 50 centipawns on all ${totalMoves} analyzed move${totalMoves === 1 ? "" : "s"}. Average centipawn loss: ${avgCentipawnLoss}.`;
+  }
+
+  const parts = [
+    `${blunders} blunder${blunders === 1 ? "" : "s"}`,
+    `${mistakes} mistake${mistakes === 1 ? "" : "s"}`,
+    `${inaccuracies} inaccuracy${inaccuracies === 1 ? "" : "ies"}`,
+  ];
+  const worstFinding = findings.reduce((worst, finding) =>
+    finding.centipawn_loss > worst.centipawn_loss ? finding : worst,
+  );
+
+  return `${subject} averaged ${avgCentipawnLoss} centipawns lost across ${totalMoves} analyzed move${totalMoves === 1 ? "" : "s"}. Breakdown: ${parts.join(", ")}. Biggest swing: move ${worstFinding.move_number} ${worstFinding.move} (${worstFinding.centipawn_loss} cp).`;
+}
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

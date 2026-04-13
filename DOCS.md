@@ -1,5 +1,92 @@
 # Pablo Working Notes
 
+## 2026-04-13 Stockfish Integration Notes
+
+### What was found
+
+- The existing analysis flow is entirely heuristic:
+  - [`lib/chess-analysis.ts`](/home/worker/repo/lib/chess-analysis.ts) scans for mate-in-1/2 and immediate material drops using `chess.js`.
+  - [`app/api/analyze/route.ts`](/home/worker/repo/app/api/analyze/route.ts) calls that analyzer synchronously and returns `{ total_moves, blunders, summary }`.
+  - [`components/game-analysis-card.tsx`](/home/worker/repo/components/game-analysis-card.tsx) expects `report.blunders` to be an array of flagged moves and renders only blunder-oriented copy.
+- The repo did not have installed dependencies at the start of this task, so local Next.js docs were unavailable until `npm install` completed.
+- This project is on Next.js `16.2.3`.
+- The local docs required by `AGENTS.md` do exist after install under `node_modules/next/dist/docs/`.
+- Relevant Next.js guidance confirmed locally:
+  - Route Handlers live in `app/**/route.ts` and use the Web `Request` / `Response` APIs.
+  - The Node.js runtime is the default; Edge has restricted Node API support and is not appropriate for Stockfish.
+  - Route Handler dependencies are automatically bundled unless opted out with `serverExternalPackages`.
+  - `outputFileTracingIncludes` can be used when runtime assets from a package need to be explicitly traced into production output.
+
+### Stockfish package findings
+
+- Installed npm package: `stockfish@18.0.7`.
+- The package exports a Node loader function from `index.js`.
+- The package ships multiple engine flavors under `node_modules/stockfish/bin/`, including:
+  - `stockfish-18.js` / `.wasm`
+  - `stockfish-18-single.js` / `.wasm`
+  - `stockfish-18-lite.js` / `.wasm`
+  - `stockfish-18-lite-single.js` / `.wasm`
+- A direct Node smoke test worked with `lite-single`:
+  - the engine initialized successfully
+  - `uci` and `isready` completed
+  - `go depth 6` from the starting position produced standard `info depth ... score cp ...` lines and a final `bestmove`
+- `lite-single` looks like the right default for this API route because it is much smaller than the full engine and does not require browser threading/cross-origin setup.
+
+### Implementation notes
+
+- The current UI and types need a coordinated change because `blunders` is currently an array, while the new engine-backed report needs numeric counts plus a richer list of flagged moves if the card is to keep showing example mistakes.
+- The analyze route should likely be pinned to `runtime = "nodejs"` explicitly to avoid accidental incompatibility with Stockfish.
+- Production packaging will likely need:
+  - `serverExternalPackages: ["stockfish"]`
+  - `outputFileTracingIncludes` for the Stockfish `bin` assets used by `/api/analyze`
+
+### What changed
+
+- Installed `stockfish` and added a local `stockfish.d.ts` declaration so TypeScript can type-check the Node loader.
+- Replaced the heuristic-only analyzer in [`lib/chess-analysis.ts`](/home/worker/repo/lib/chess-analysis.ts) with an async Stockfish-backed pipeline that:
+  - boots the `lite-single` WASM engine lazily on first request
+  - runs one evaluation per unique position in the PGN at depth `10`
+  - computes mover-relative centipawn loss from the engine score before and after each move
+  - classifies flagged moves with:
+    - `blunder` for `> 200` cp
+    - `mistake` for `> 100` cp
+    - `inaccuracy` for `> 50` cp
+  - returns `{ total_moves, blunders, mistakes, inaccuracies, avg_centipawn_loss, summary, findings }`
+- Updated [`app/api/analyze/route.ts`](/home/worker/repo/app/api/analyze/route.ts) to:
+  - use `runtime = "nodejs"`
+  - await the async analyzer
+- Updated [`next.config.ts`](/home/worker/repo/next.config.ts) to support production packaging for Stockfish:
+  - `serverExternalPackages: ["stockfish"]`
+  - `outputFileTracingIncludes` for `node_modules/stockfish/bin/**/*` on `/api/analyze`
+- Updated [`components/game-analysis-card.tsx`](/home/worker/repo/components/game-analysis-card.tsx) so the UI now shows:
+  - moves analyzed
+  - average centipawn loss
+  - separate blunder / mistake / inaccuracy counts
+  - per-move classification badges and centipawn-loss values in the findings list
+- Mate-driven loss is capped at `1000` cp for reporting so forced mates still register as blunders without making averages meaningless.
+
+### Verification
+
+- `npm run lint` passes.
+- `npm run build` passes.
+- Production-mode local verification passed with `next start` + `POST /api/analyze`.
+- Known PGN used:
+  - `1. f3 e5 2. g4 Qh4#`
+- Example response for `perspective: "white"`:
+  - `total_moves: 2`
+  - `blunders: 1`
+  - `mistakes: 0`
+  - `inaccuracies: 1`
+  - `avg_centipawn_loss: ~516`
+  - flagged findings:
+    - `f3` as an `inaccuracy` (~`92-93` cp)
+    - `g4` as a `blunder` (~`939-941` cp) with `allows a forced mate in 1`
+
+### Notes / follow-up risk
+
+- In local `next dev`, hot-reloading after mid-task analyzer changes caused one Stockfish WASM reinitialization failure. A fresh production-mode server (`next start`) worked correctly on repeated requests.
+- For future work, if analysis latency becomes a problem on long games, the next lever should be caching or background jobs before increasing engine depth.
+
 ## 2026-04-13 NanoLaunch Listing
 
 ### What was found

@@ -4,6 +4,8 @@ import {
   type AnalysisPerspective,
 } from "@/lib/chess-analysis";
 
+export const runtime = "nodejs";
+
 type AnalyzeRequestBody = {
   pgn?: unknown;
   perspective?: unknown;
@@ -30,7 +32,7 @@ export async function POST(request: Request) {
   const perspective = toPerspective(payload.perspective);
 
   try {
-    const report = analyzePgn(pgn, perspective);
+    const report = await analyzePgn(pgn, perspective);
 
     return Response.json(report);
   } catch (error) {

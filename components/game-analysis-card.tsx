@@ -64,8 +64,11 @@ export function GameAnalysisCard({
     setReport(payload as GameAnalysisReport);
   }
 
-  const previewBlunders = report?.blunders.slice(0, isTrial ? 1 : report.blunders.length) ?? [];
-  const hiddenBlunderCount = report ? report.blunders.length - previewBlunders.length : 0;
+  const previewFindings =
+    report?.findings.slice(0, isTrial ? 1 : report.findings.length) ?? [];
+  const hiddenFindingCount = report
+    ? report.findings.length - previewFindings.length
+    : 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -80,7 +83,7 @@ export function GameAnalysisCard({
           <p className="mt-2 text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
             {isTrial
               ? "Try one instant report first. Full recurring analysis unlocks after you see the coaching output."
-              : "Heuristic v1: missed mates in 1-2 and immediately hanging pieces."}
+              : "Engine scan: Stockfish depth 10 with centipawn-loss classification on every analyzed move."}
           </p>
         </div>
 
@@ -130,21 +133,58 @@ export function GameAnalysisCard({
                   background: "rgba(201,168,76,0.08)",
                 }}
               >
-                {report.total_moves} plies
+                {report.total_moves} moves analyzed
               </span>
               <span
                 className="rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]"
                 style={{
                   borderColor: "rgba(201,168,76,0.2)",
-                  color: report.blunders.length > 0 ? "#ffb4a8" : "#8ce0ac",
-                  background:
-                    report.blunders.length > 0
-                      ? "rgba(190, 75, 50, 0.14)"
-                      : "rgba(75, 181, 122, 0.12)",
+                  color: "var(--gold-light)",
+                  background: "rgba(201,168,76,0.08)",
                 }}
               >
-                {report.blunders.length} blunder
-                {report.blunders.length === 1 ? "" : "s"}
+                {report.avg_centipawn_loss} avg CPL
+              </span>
+              <span
+                className="rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]"
+                style={{
+                  borderColor: "rgba(190, 75, 50, 0.24)",
+                  color: report.blunders > 0 ? "#ffb4a8" : "var(--text-muted)",
+                  background:
+                    report.blunders > 0
+                      ? "rgba(190, 75, 50, 0.14)"
+                      : "rgba(154,146,137,0.08)",
+                }}
+              >
+                {report.blunders} blunder{report.blunders === 1 ? "" : "s"}
+              </span>
+              <span
+                className="rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]"
+                style={{
+                  borderColor: "rgba(212, 142, 73, 0.22)",
+                  color: report.mistakes > 0 ? "#ffd59e" : "var(--text-muted)",
+                  background:
+                    report.mistakes > 0
+                      ? "rgba(212, 142, 73, 0.12)"
+                      : "rgba(154,146,137,0.08)",
+                }}
+              >
+                {report.mistakes} mistake{report.mistakes === 1 ? "" : "s"}
+              </span>
+              <span
+                className="rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]"
+                style={{
+                  borderColor: "rgba(106, 154, 214, 0.22)",
+                  color:
+                    report.inaccuracies > 0 ? "#b7d6ff" : "var(--text-muted)",
+                  background:
+                    report.inaccuracies > 0
+                      ? "rgba(106, 154, 214, 0.12)"
+                      : "rgba(154,146,137,0.08)",
+                }}
+              >
+                {report.inaccuracies} inaccuracy
+                {report.inaccuracies === 1 ? "" : "ies"}
               </span>
               {isTrial ? (
                 <span
@@ -164,11 +204,11 @@ export function GameAnalysisCard({
               {report.summary}
             </p>
 
-            {previewBlunders.length > 0 ? (
+            {previewFindings.length > 0 ? (
               <div className="grid gap-3">
-                {previewBlunders.map((blunder) => (
+                {previewFindings.map((finding) => (
                   <article
-                    key={`${blunder.move_number}-${blunder.move}`}
+                    key={`${finding.move_number}-${finding.color}-${finding.move}`}
                     className="rounded-2xl border px-4 py-4"
                     style={{
                       borderColor: "rgba(201,168,76,0.12)",
@@ -183,7 +223,7 @@ export function GameAnalysisCard({
                           color: "var(--gold-light)",
                         }}
                       >
-                        Move {blunder.move_number}
+                        Move {finding.move_number}
                       </span>
                       <span
                         className="rounded-full border px-3 py-1 text-xs font-bold"
@@ -192,7 +232,35 @@ export function GameAnalysisCard({
                           color: "var(--text-primary)",
                         }}
                       >
-                        {blunder.move}
+                        {finding.move}
+                      </span>
+                      <span
+                        className="rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.14em]"
+                        style={{
+                          borderColor:
+                            finding.classification === "blunder"
+                              ? "rgba(190, 75, 50, 0.24)"
+                              : finding.classification === "mistake"
+                                ? "rgba(212, 142, 73, 0.22)"
+                                : "rgba(106, 154, 214, 0.22)",
+                          color:
+                            finding.classification === "blunder"
+                              ? "#ffb4a8"
+                              : finding.classification === "mistake"
+                                ? "#ffd59e"
+                                : "#b7d6ff",
+                        }}
+                      >
+                        {finding.classification}
+                      </span>
+                      <span
+                        className="rounded-full border px-3 py-1 text-xs font-bold"
+                        style={{
+                          borderColor: "rgba(154,146,137,0.18)",
+                          color: "var(--text-secondary)",
+                        }}
+                      >
+                        -{finding.centipawn_loss} cp
                       </span>
                     </div>
 
@@ -200,7 +268,7 @@ export function GameAnalysisCard({
                       className="mt-3 text-sm leading-6"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      {blunder.description}
+                      {finding.description}
                     </p>
                   </article>
                 ))}
@@ -214,7 +282,7 @@ export function GameAnalysisCard({
                   color: "#b9f3cf",
                 }}
               >
-                No obvious blunders were flagged in this scan.
+                No inaccuracies worse than 50 centipawns were flagged in this scan.
               </div>
             )}
 
@@ -241,16 +309,16 @@ export function GameAnalysisCard({
                       You got the first coaching hit. Upgrade for the full habit map.
                     </h3>
                     <p className="mt-3 text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
-                      {hiddenBlunderCount > 0
-                        ? `${hiddenBlunderCount} more flagged moment${hiddenBlunderCount === 1 ? " is" : "s are"} hidden in this game, plus recurring-pattern reports across your imported history.`
+                      {hiddenFindingCount > 0
+                        ? `${hiddenFindingCount} more flagged moment${hiddenFindingCount === 1 ? " is" : "s are"} hidden in this game, plus recurring-pattern reports across your imported history.`
                         : "Unlock recurring-pattern reports across your imported history, weekly coaching summaries, and unlimited scans."}
                     </p>
                     <ul
                       className="mt-4 grid gap-2 text-sm"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      <li>• Full blunder list for every imported game</li>
-                      <li>• Pattern detection across your recent history</li>
+                      <li>• Full Stockfish breakdown for every imported game</li>
+                      <li>• Blunder, mistake, and inaccuracy trends across your history</li>
                       <li>• Weekly coaching reports and study priorities</li>
                     </ul>
                   </div>
