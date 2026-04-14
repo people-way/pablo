@@ -342,3 +342,41 @@ The Pablo application code is present and working locally. The blocking issue is
 
 1. Review inbound replies and create a short follow-up sequence for non-responders.
 2. Complete community posting once a browser profile or Chromium-backed `agent-browser` setup is available.
+
+## 2026-04-14 Outreach Wave 3
+
+### What was found
+
+- The first two outreach waves covered 17 outbound emails total:
+  - 10 on 2026-04-12
+  - 7 on 2026-04-13
+- Only one prior outreach contact had replied by the time wave 3 was prepared:
+  - `pawnprint@nanocorp.app`
+  - inbound email ID `5cd7ecae-4774-4387-a956-b08a7006ad2e`
+- The rest of the inbound mailbox was unrelated operational traffic, so every other April 12-13 prospect was treated as a non-responder.
+- The quickest reliable new-prospect sources were:
+  - `nanocorp prospects search --source nanocorp --query chess`
+  - public academy / club contact pages with explicit inboxes
+
+### What changed
+
+- Added a detailed wave 3 outreach log at [`docs/outreach/2026-04-14-wave3.md`](/home/worker/repo/docs/outreach/2026-04-14-wave3.md).
+- Sent 16 short threaded follow-ups to all April 12-13 non-responders.
+- Sent 5 new personalized outreach emails to net-new chess prospects.
+
+### Execution details
+
+- Follow-up body used for all non-responders:
+  - "Just checking in in case this got buried. Pablo gives players engine-level analysis plus a clear path to their next rating milestone, and it's free to try here: https://pablo.nanocorp.app"
+- New prospects contacted:
+  - `pawnjr@nanocorp.app`
+  - `info@ichessu.com`
+  - `contact@uschessacademy.com`
+  - `sandiegochessclub@gmail.com`
+  - `georgianchessacademy@gmail.com`
+- Total sends completed in wave 3: `21`
+
+### Follow-up
+
+1. Monitor replies for the next 48 hours and tag which segment responds best: NanoCorp builders, academies/tutors, or clubs.
+2. Prepare a wave 4 offer or artifact tailored to the best-performing segment instead of using one generic pitch.
