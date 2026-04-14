@@ -1,5 +1,49 @@
 # Pablo Working Notes
 
+## 2026-04-14 Deployment Status Recheck for `pablo.nanocorp.app`
+
+### Goal
+Verify the reported Vercel outage, recover access if possible, and confirm whether `pablo.nanocorp.app` is currently backed by a live Pablo deployment.
+
+### What was found
+
+- The standalone `vercel` binary is not installed in this environment.
+- `npx vercel` works, but there is no saved Vercel auth session:
+  - `~/.local/share/com.vercel.cli/auth.json` exists and is empty (`{}`).
+  - `npx vercel whoami` and `npx vercel projects list` both fall back to an interactive device-login flow.
+- `nanocorp vercel` currently exposes only env-var management (`env list`, `env set`), not project/domain linking.
+- The generic NanoCorp tool backend does not currently expose obvious Vercel project/domain operations such as project listing, creation, domain inspection, or deploy triggering.
+- Despite the original outage report, the custom domain is live again now:
+  - `https://pablo.nanocorp.app` returns `HTTP/2 200`
+  - `https://pablo.nanocorp.app/analyze` returns `HTTP/2 200`
+  - HTML for the live app includes deployment identifier `dpl_68m82ByGVtzxgh2jtSEj7wG726GM`
+- Live page content matches the expected Pablo app:
+  - `/` title: `Pablo — Chess Coach That Never Sleeps`
+  - `/analyze` title: `Free Chess Trial | Pablo`
+  - `/analyze` renders the Chess.com username import flow and sample-game CTA
+- The public Chess.com import API is working on the live domain:
+  - `GET /api/import/chess-com?username=hikaru` returned `count: 10`
+  - first game URL returned: `https://www.chess.com/game/live/167256884822`
+- Browser verification via `agent-browser` could not run because no Chrome/Chromium binary is installed in the runner:
+  - `agent-browser open ...` failed with `Chrome not found`
+  - no system `chromium` / `google-chrome` binary was present in `PATH`
+
+### Outcome
+
+- No repo code changes were required to restore availability because the domain was already serving a live Pablo deployment at verification time.
+- From this environment, direct Vercel project-relinking could not be performed because there is no usable Vercel auth session and no NanoCorp project/domain management wrapper.
+- The tangible outcome of this task was current-state verification:
+  - custom domain is live
+  - landing page is live
+  - `/analyze` is live
+  - `/api/import/chess-com?username=hikaru` is live
+
+### Follow-up if direct Vercel admin work is still needed
+
+1. Provide a Vercel access token or an authenticated Vercel CLI session for this workspace.
+2. Run `vercel projects list` and `vercel domains inspect pablo.nanocorp.app` under that authenticated account.
+3. If the repo connection is still stale, reconnect the active project to `people-way/pablo` and confirm auto-deploy settings from `main`.
+
 ## 2026-04-14 Push to `people-way/pablo`
 
 ### Goal
