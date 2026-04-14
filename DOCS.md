@@ -1,5 +1,44 @@
 # Pablo Working Notes
 
+## 2026-04-14 Push to `people-way/pablo`
+
+### Goal
+Push the existing Pablo codebase from `nanocorp-hq/pablo` to the user's personal GitHub repository at `people-way/pablo` using the provided PAT.
+
+### What was found
+
+- Local repo branch: `main`
+- Local source commit before this task: `3d97cc1` (`Document people-way rebuild task in DOCS.md`)
+- `push-to-people-way.sh` already existed and was suitable for token-based migration, but a direct one-off authenticated push was cleaner because it avoided storing the token in git config.
+- The target repo `people-way/pablo` already existed and accepted authenticated access.
+
+### What was done
+
+1. Confirmed the local repo was already on the requested code snapshot (`3d97cc1`).
+2. Pushed `main` directly to `https://github.com/people-way/pablo.git` using the provided token.
+3. Verified the target repo now exposes the expected root files via the GitHub API, including:
+   - `README.md`
+   - `app/`
+   - `components/`
+   - `lib/`
+   - `push-to-people-way.sh`
+   - `DOCS.md`
+
+### Verification
+
+- Git push result: new branch `main -> main`
+- GitHub repo metadata after push:
+  - `full_name`: `people-way/pablo`
+  - `default_branch`: `main`
+  - `visibility`: `public`
+  - `pushed_at`: `2026-04-14T08:23:18Z`
+
+### Next steps
+
+1. Import `people-way/pablo` into Vercel.
+2. Configure any required environment variables in Vercel.
+3. Run one deployment verification on `/`, `/analyze`, and `/upgrade` after the first production build.
+
 ## 2026-04-13 Codebase Rebuild for people-way
 
 ### Goal
