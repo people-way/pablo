@@ -1,5 +1,18 @@
 # Pablo Working Notes
 
+## 2026-04-14 Pablo Character Bible
+
+### What was created
+- Full character bible written to `docs/pablo-character-bible.md`
+- Covers: visual identity, personality profile, voice & tone (10 example messages), speech patterns, Pablo's opinions on openings, and 6 UI usage scenarios
+- Intended audience: frontend developer (avatar/UI) and AI prompt engineer (LLM voice)
+
+### Key design decisions
+- Visual: illustrated (not photo-realistic), dark slate + amber gold palette, chess club hoodie, strong silhouette
+- Personality: direct, opinionated, warm underneath — the "best friend who's a GM"
+- Voice: elo-adaptive jargon, dry humor, sports/battle/architecture metaphors
+- Opinions: pro-1.e4, pro-Caro-Kann/Kan for Black vs e4, pro-KID vs d4, skeptical of London System and Dragon for club players
+
 ## 2026-04-14 Deployment Status Recheck for `pablo.nanocorp.app`
 
 ### Goal
