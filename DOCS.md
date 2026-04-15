@@ -1,5 +1,37 @@
 # Pablo Working Notes
 
+## 2026-04-15 Rebuild /analyze Page: 3-Step Multi-Game Report UI
+
+### What was completed
+
+- **`app/analyze/page.tsx`** — Fully replaced the old server-component single-game UI with a `"use client"` 3-step experience:
+  - **Step 1**: Full-viewport username input (chess-pattern background, Playfair heading, gold CTA)
+  - **Step 2**: Animated loading with 5 sequential messages, pulsing chess piece, gold progress bar (~7s minimum)
+  - **Step 3**: Multi-game report with:
+    - `StatCard`: N games analyzed, wins/losses/draws, win rate %, date range
+    - `WeaknessCard` (up to 3): opening name + color badge, win rate badge, Pablo diagnosis, key problem, what to do, teaser CTA → /upgrade
+    - `PabloSummaryCard`: coaching message with Pablo avatar icon, Playfair serif quote styling, signed "— Pablo"
+    - `UpgradeCTA`: "Ready to fix your [worst opening] for good?" → /upgrade
+  - Wires `/api/import/chess-com?username=X` first, then `/api/analyze/openings`
+  - Error handling: username not found, no games, network errors (shown inline in Step 1)
+
+- **`app/api/analyze/openings/route.ts`** (new) — POST endpoint that:
+  - Accepts `{ games: ImportedChessComGame[], username: string }`
+  - Groups games by `openingFamily` + `color`, calculates win rates per group
+  - Identifies up to 3 weaknesses (≥3 games, <50% win rate), sorted worst-first
+  - Generates Pablo-voice `diagnosis`, `keyProblem`, `whatToDo` using catalog data
+  - Generates a 4–5 sentence `summary` message in Pablo's coaching voice
+  - Returns `OpeningsAnalysisResult` type (exported for client typing)
+
+### What remains
+
+- Wire the real `/api/analyze/openings` route with actual Lichess or ECO-level analysis (currently deterministic heuristic)
+- Add LLM-backed diagnosis generation using Claude API for personalized Pablo voice
+- Add `/upgrade` page Stripe payment link if not already live
+- Push to `people-way/pablo` repo (requires a PAT with repo scope for that account)
+
+---
+
 ## 2026-04-15 Partial Implementation: Chess.com Multi-Game Import Foundation
 
 ### What was completed
