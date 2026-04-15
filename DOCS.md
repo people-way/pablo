@@ -1,5 +1,58 @@
 # Pablo Working Notes
 
+## 2026-04-15 Account System & Progression Dashboard
+
+### What was completed
+
+**DB schema** (PostgreSQL, via `psql $DATABASE_URL`):
+- `users`: id, email, chess_com_username, created_at, last_seen
+- `sessions`: token (PK), user_id, expires_at
+- `magic_link_tokens`: token (PK), email, expires_at, used
+- `analyses`: user_id, chess_com_username, run_at, total_games, wins/losses/draws, win_rate, date_range, opening_breakdown (JSONB), pablo_summary
+- `opening_stats`: user_id, chess_com_username, opening_family, color, games_played, wins, win_rate (UNIQUE on user+username+opening+color)
+
+**Auth system** (email magic link, no external service):
+- `lib/db.ts`: pg Pool connection helper (ssl: rejectUnauthorized: false)
+- `lib/auth.ts`: session token creation/validation, magic link token creation/verification, user upsert
+- `/api/auth/send-magic-link` (POST): generates token, sends email via `nanocorp emails send` CLI, returns `{ok: true}`
+- `/api/auth/verify` (GET `?token=`): verifies token, creates session, sets httpOnly cookie `pablo_session`, redirects to `/dashboard`
+- `/api/auth/session` (GET): returns `{user: {id, email, chess_com_username}}` or `{user: null}`
+- `/api/auth/logout` (POST): deletes session, clears cookie
+
+**Data persistence**:
+- `/api/analyses/save` (POST): saves analysis result + upserts opening_stats, requires auth
+- `/api/dashboard` (GET): returns streak, totalAnalyses, openingCards (with mastery, sparkline history, badge), recentSummary, badges
+
+**Pages**:
+- `/login`: email input → magic link form, shows "check email" state on success
+- `/dashboard`: full progression dashboard — welcome, streak counter, badge shelf, mastery distribution, opening mastery cards (mastery pips 1-5, sparkline per opening, trend label, badge if Level 4+), run new analysis CTA
+
+**Analyze page changes** (`app/analyze/page.tsx`):
+- Session check on mount via `/api/auth/session`
+- Pre-fills username from `?username=` search param
+- Logged-in users: auto-saves analysis to DB, shows "Saved to your account → View dashboard" confirmation
+- Anonymous users: shows `SaveGatePrompt` — "Pablo wants to track your improvement" with email form → sends magic link → "Check your email" confirmation
+
+**Gamification mechanics**:
+- Mastery levels 1–5 based on win rate thresholds (<40/40-50/50-60/60-70/>70)
+- Streak: consecutive days with at least one analysis run
+- Badges: unlocked at Level 4+ per opening (BADGE_MAP covers 15+ openings)
+- Mastery distribution summary card on dashboard
+
+**Env var set**: `NEXT_PUBLIC_BASE_URL=https://pablo.nanocorp.app` on Vercel
+
+### What remains
+
+- Push changes to `people-way/pablo` (requires PAT)
+- Wire chess username from analysis into user profile on login (currently only saved if not already set)
+- Store full opening_breakdown in analyses (all openings, not just weaknesses) for richer sparklines
+- Add nav bar / header with login/dashboard link to landing page and analyze page
+- Email template for magic link: currently plain text, could be HTML
+- Opening stats should track ALL openings (not just weaknesses) — need to pass full opening groups from analyze to save endpoint
+- Add ELO impact estimate to dashboard ("Estimated +X Elo from opening improvements")
+
+
+
 ## 2026-04-15 Outreach Wave 4: New NanoCorp Prospects Only
 
 ### What was completed
