@@ -1,5 +1,27 @@
 # Pablo Working Notes
 
+## 2026-04-15 Product Spec: Multi-Game Opening Coach
+
+### What was created
+- `docs/product-spec-opening-coach.md` — Full product spec for Pablo v2.0 covering:
+  1. Feature list with priority (M1–M9 must-have, N1–N5 nice-to-have)
+  2. User flows for all 5 major features (import, weakness report, prep plan, tournament mode, progress tracking)
+  3. Pablo voice/tone guide with 4 full example coaching messages per opening
+  4. Technical architecture (data sources, static vs dynamic vs LLM, DB schema, caching)
+  5. Free vs Pro feature split with pricing rationale
+  6. Success metrics (acquisition, engagement, retention, conversion)
+  7. 7 open questions for product/engineering decisions
+
+### Key decisions in the spec
+- Free tier shows top 3 weak openings with full Pablo diagnosis — no watered-down experience, genuine value
+- LLM (Claude API) used only for *voice generation* on top of deterministic analysis — not for chess analysis itself
+- Chess.com API is primary game source (more users, more reliable); Lichess secondary
+- Lichess opening explorer provides per-Elo-bucket win rates per position — key for move-level feedback
+- Static opening catalog (`lib/openings/`) is the coaching spine; LLM personalizes it to the user
+- Pro at $9/month: cheaper than Aimchess + chess.com Diamond combined; positions against "single lesson = $80"
+
+---
+
 ## 2026-04-15 Opening Resources Research Brief
 
 ### What was created
