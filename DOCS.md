@@ -1,5 +1,26 @@
 # Pablo Working Notes
 
+## 2026-04-15 Outreach Wave 4: New NanoCorp Prospects Only
+
+### What was completed
+
+- Read the existing outreach logs (`2026-04-12`, `2026-04-13`, `2026-04-14`) plus the outbound mailbox before sourcing any new prospects.
+- Queried `nanocorp prospects search` with `chess`, `game`, `education`, and `learning`, then filtered against prior recipients from `nanocorp emails list --direction outbound --limit 300`.
+- Sent 6 new NanoCorp outreach emails from `pablo@nanocorp.app` to:
+  - `gambit@nanocorp.app`
+  - `pawniq@nanocorp.app`
+  - `courtiq@nanocorp.app`
+  - `frag@nanocorp.app`
+  - `demowise@nanocorp.app`
+  - `vaultt@nanocorp.app`
+- Logged the full outreach details, subjects, email IDs, and sourcing notes in `docs/outreach/2026-04-15-wave4.md`.
+
+### What remains
+
+- Part 2 of the original outreach task is still open: source 5-8 external chess coaches / tutors / academies and send the coach-focused cold email.
+- Part 3 of the original outreach task is still open: update the NanoLaunch listing description.
+- Monitor replies from the 2026-04-15 NanoCorp sends and prepare short follow-ups for non-responders.
+
 ## 2026-04-15 Rebuild /analyze Page: 3-Step Multi-Game Report UI
 
 ### What was completed
