@@ -1,5 +1,33 @@
 # Pablo Working Notes
 
+## 2026-04-15 Gamification Design Spec
+
+### What was created
+- `docs/gamification-design-spec.md` — Complete gamification design spec covering:
+  1. **Opening Mastery Framework** — 5-level system (Pawn→Knight→Bishop→Rook→King) with win rate thresholds, min games, Pablo voice copy per level, visual pip design, mastery recalculation logic
+  2. **XP & Points System** — XP earn events (analysis runs, level-ups, badges, streaks), 6-tier rank table (Pawn→King), progress bar + rank badge design
+  3. **Streak Mechanics** — Weekly streak model, Pablo messages for breaks + 4/7/12/26-week milestones
+  4. **Badge System** — 20 badges across 3 categories (opening mastery, performance, habit), Pablo toast copy examples
+  5. **Dashboard UX** — Above-fold layout, opening card design (with sparkline + mastery pips), streak counter position, badge shelf, 8 Pablo greeting variants
+  6. **Conversion Hook** — Full copy for the free→account conversion moment, sign-up prompt design spec, post-signup onboarding flow
+
+### Key design decisions
+- **Weekly streak** (not daily) to respect chess player rhythms
+- **"Save my progress"** framing on sign-up CTA (not "sign up")
+- Chess piece rank names (Pawn/Knight/Bishop/Rook/Queen/King) — consistent with mastery level icons
+- Mastery icons are chess pieces (♟♞♝♜♚), not stars — on-brand
+- Conversion modal uses Pablo's face + first-person voice — invitation, not paywall
+- Implementation pseudocode + DB schema additions included for developer handoff
+
+### What remains
+- Implement XP/streak DB columns in existing schema
+- Build `user_badges` table and badge evaluation logic
+- Wire XP events into `/api/analyses/save`
+- Update `/dashboard` UI to match spec (rank bar, badge shelf, Pablo greeting variants)
+- Build the SaveGatePrompt / conversion modal from spec
+
+---
+
 ## 2026-04-15 Account System & Progression Dashboard
 
 ### What was completed
