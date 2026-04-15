@@ -1,5 +1,31 @@
 # Pablo Working Notes
 
+## 2026-04-15 Opening Knowledge Base
+
+### What was created
+- `lib/openings/catalog.json` — 25+ openings with full structured data (ECO codes, strategic themes, typical plans, common mistakes by Elo bracket, critical moves, traps, model games, pablo_opinion voice, weakness signals)
+- `lib/openings/transpositions.md` — 5 major transposition networks, move-order tricks, deceptively-similar lines comparison table, Lichess API integration points
+- `lib/openings/coaching-scripts.md` — 20 Pablo-voice weakness report scripts for top openings + reusable template
+- `lib/openings/elo-calibration.md` — 5 Elo brackets (1200-2200) with specific coaching emphasis, red flags, opening recommendations, sample Pablo messages
+- `lib/openings/punch-above-weight.md` — 10 upset weapon openings with psychological rationale and effective Elo ranges
+- `lib/openings/README.md` — Index explaining the database structure and how Pablo uses it
+
+### Coverage
+King's Pawn openings: Italian, Ruy Lopez, King's Gambit, Vienna, Four Knights
+Sicilian: Najdorf, Dragon, Scheveningen, Kan/Taimanov
+vs 1.e4 Black: French, Caro-Kann, Pirc, Alekhine, Scandinavian
+Queen's Pawn: London, QGD, QGA, Colle (referenced)
+vs 1.d4 Black: KID, Nimzo-Indian, Queen's Indian, Grünfeld, Benoni, Dutch, Budapest, Tarrasch
+Flank: English, Réti, Bird's, Larsen's
+
+### Key design decisions
+- Each opening has pablo_opinion (in voice) + weakness_signals array for player matching
+- Coaching scripts follow the template: name the problem, diagnose in chess terms, give concrete fix
+- Elo calibration is prescriptive: Pablo says different things at 1300 vs 1900
+- Transposition map includes Lichess API endpoints for dynamic enrichment
+
+
+
 ## 2026-04-14 Pablo Character Bible
 
 ### What was created
