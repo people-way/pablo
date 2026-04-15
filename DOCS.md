@@ -1,5 +1,23 @@
 # Pablo Working Notes
 
+## 2026-04-15 Opening Resources Research Brief
+
+### What was created
+- `docs/research-brief-opening-resources.md` — Comprehensive research brief covering:
+  1. Opening databases & APIs (Lichess, Chess.com, PGN Mentor, TWIC, Lumbra's Gigabase)
+  2. Elo-calibrated coaching approach (1200–2200 breakdown)
+  3. Opening weakness patterns and "punch above your weight" openings
+  4. AI chess coaching competitive landscape (Chessable, Chess.com, Aimchess, Noctie, Chessline)
+  5. API integration priority stack for Pablo's coaching engine
+
+### Key findings
+- **Lichess opening explorer API** (`explorer.lichess.ovh`) returns ECO codes, win/draw/loss rates, move trees, and per-Elo-bucket stats (1600/1800/2000/2200/2500+). Has 429 reliability issues (lila #19610); cache aggressively.
+- **Chess.com player API** is the primary game source: monthly game archives with ECO codes in PGN headers. Free, no auth, more reliable.
+- **PGN Mentor** (pgnmentor.com) has ECO-organized game files — best free source for opening-specific example games.
+- **TWIC** (theweekinchess.com) and **Lumbra's Gigabase** (lumbrasgigabase.com) are the best free bulk PGN databases.
+- **The competitive gap Pablo fills:** Every existing product is either a database, analytics dashboard, or learning drill tool. None have an opinionated coach with a persistent voice and personality.
+- **Closest competitor:** Noctie.ai (AI opponent that coaches during play, $9/mo). Different use case (Pablo coaches on game history review, not live play). Not directly competing.
+
 ## 2026-04-15 Opening Knowledge Base
 
 ### What was created
