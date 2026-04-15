@@ -1,5 +1,31 @@
 # Pablo Working Notes
 
+## 2026-04-15 Partial Implementation: Chess.com Multi-Game Import Foundation
+
+### What was completed
+- Added `lib/openings/lookup.ts` as a shared opening-lookup utility for:
+  - ECO normalization
+  - ECO extraction from Chess.com `ECOUrl` PGN headers
+  - opening-family mapping (Sicilian, French, Caro-Kann, KID, etc.)
+  - fallback matching into `lib/openings/catalog.json`
+- Extended `lib/chess-com.ts` toward the new free-tier import shape:
+  - import now targets the last 3 archive months by default
+  - import limit raised from 10 to 50 by default
+  - games are still sorted by most recent first
+  - PGN headers are parsed for `Opening`, `ECO`, and `ECOUrl`
+  - imported game objects now include `openingName`, `ecoCode`, and `openingFamily`
+  - import result now includes `archives` plus an aggregate `archive` window label
+
+### What remains
+- Wire the updated import shape into `app/api/import/chess-com/route.ts`
+- Build the new multi-game opening analysis engine and `app/api/analyze/openings/route.ts`
+- Replace the current `/analyze` single-game UI with the new multi-step loading + report experience
+- Run lint/build verification after the unfinished API and UI work is in place
+
+### Notes
+- This is only the import-layer foundation. No UI or new analysis route was implemented in this partial pass.
+- Nothing was deployment-verified from this partial state.
+
 ## 2026-04-15 Product Spec: Multi-Game Opening Coach
 
 ### What was created

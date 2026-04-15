@@ -1,6 +1,14 @@
+import {
+  extractEcoCodeFromUrl,
+  getOpeningLookup,
+  normalizeEcoCode,
+} from "@/lib/openings/lookup";
+
 const CHESS_COM_BASE_URL = "https://api.chess.com/pub/player";
 const CHESS_COM_USER_AGENT =
   "Pablo/1.0 (https://pablo.nanocorp.app; contact: support@pablo.nanocorp.app)";
+const DEFAULT_ARCHIVE_MONTHS = 3;
+const DEFAULT_IMPORT_LIMIT = 50;
 const DRAW_RESULTS = new Set([
   "agreed",
   "draw",
@@ -52,11 +60,15 @@ export type ImportedChessComGame = {
   color: "white" | "black";
   rated: boolean;
   rules: string | null;
+  openingName: string | null;
+  ecoCode: string | null;
+  openingFamily: string;
 };
 
 export type ChessComImportResult = {
   username: string;
   archive: string;
+  archives: string[];
   games: ImportedChessComGame[];
 };
 
@@ -147,6 +159,44 @@ function normalizeResult(result: string | undefined): "win" | "loss" | "draw" {
   return "loss";
 }
 
+function parsePgnHeaders(pgn: string) {
+  const headers = new Map<string, string>();
+
+  for (const rawLine of pgn.split("\n")) {
+    const line = rawLine.trim();
+
+    if (!line.startsWith("[") || !line.endsWith("]")) {
+      continue;
+    }
+
+    const match = line.match(/^\[(\w+)\s+"(.*)"\]$/);
+
+    if (!match) {
+      continue;
+    }
+
+    headers.set(match[1], match[2]);
+  }
+
+  return headers;
+}
+
+function extractOpeningMetadata(pgn: string) {
+  const headers = parsePgnHeaders(pgn);
+  const openingName = headers.get("Opening")?.trim() || null;
+  const ecoCode =
+    normalizeEcoCode(headers.get("ECO")) ??
+    extractEcoCodeFromUrl(headers.get("ECOUrl")) ??
+    null;
+  const openingLookup = getOpeningLookup(ecoCode, openingName);
+
+  return {
+    openingName,
+    ecoCode,
+    openingFamily: openingLookup.name,
+  };
+}
+
 function mapGame(username: string, game: ChessComGame): ImportedChessComGame | null {
   const normalizedUsername = username.toLowerCase();
   const whiteUsername = game.white?.username;
@@ -165,6 +215,7 @@ function mapGame(username: string, game: ChessComGame): ImportedChessComGame | n
 
   const player = color === "white" ? game.white : game.black;
   const opponent = color === "white" ? game.black : game.white;
+  const openingMetadata = extractOpeningMetadata(game.pgn ?? "");
 
   return {
     url: game.url ?? null,
@@ -179,13 +230,36 @@ function mapGame(username: string, game: ChessComGame): ImportedChessComGame | n
     color,
     rated: Boolean(game.rated),
     rules: game.rules ?? null,
+    openingName: openingMetadata.openingName,
+    ecoCode: openingMetadata.ecoCode,
+    openingFamily: openingMetadata.openingFamily,
   };
+}
+
+function getRecentArchiveUrls(archives: string[] | undefined, archiveMonths: number) {
+  return (archives ?? []).slice(-Math.max(archiveMonths, 1));
+}
+
+function getArchiveWindow(archiveUrls: string[]) {
+  if (archiveUrls.length === 0) {
+    return "latest";
+  }
+
+  const labels = archiveUrls.map((archiveUrl) => getArchiveLabel(archiveUrl));
+
+  return labels.length === 1 ? labels[0] : `${labels[0]}–${labels.at(-1)}`;
 }
 
 export async function importRecentChessComGames(
   rawUsername: string,
+  options?: {
+    archiveMonths?: number;
+    limit?: number;
+  },
 ): Promise<ChessComImportResult> {
   const username = normalizeUsername(rawUsername);
+  const archiveMonths = options?.archiveMonths ?? DEFAULT_ARCHIVE_MONTHS;
+  const limit = options?.limit ?? DEFAULT_IMPORT_LIMIT;
 
   if (!username) {
     throw new ChessComImportError(
@@ -200,9 +274,9 @@ export async function importRecentChessComGames(
     "Unable to load Chess.com archives.",
   );
 
-  const archiveUrl = archivesResponse.archives?.at(-1);
+  const archiveUrls = getRecentArchiveUrls(archivesResponse.archives, archiveMonths);
 
-  if (!archiveUrl) {
+  if (archiveUrls.length === 0) {
     throw new ChessComImportError(
       "no_games",
       404,
@@ -210,29 +284,35 @@ export async function importRecentChessComGames(
     );
   }
 
-  const gamesResponse = await fetchChessComJson<ChessComGamesResponse>(
-    archiveUrl,
-    "Unable to load the latest Chess.com games archive.",
+  const gamesResponses = await Promise.all(
+    archiveUrls.map((archiveUrl) =>
+      fetchChessComJson<ChessComGamesResponse>(
+        archiveUrl,
+        "Unable to load the latest Chess.com games archive.",
+      ),
+    ),
   );
 
-  const games = (gamesResponse.games ?? [])
+  const games = gamesResponses
+    .flatMap((gamesResponse) => gamesResponse.games ?? [])
     .slice()
     .sort((left, right) => (right.end_time ?? 0) - (left.end_time ?? 0))
     .map((game) => mapGame(username, game))
     .filter((game): game is ImportedChessComGame => Boolean(game))
-    .slice(0, 10);
+    .slice(0, limit);
 
   if (games.length === 0) {
     throw new ChessComImportError(
       "no_games",
       404,
-      `No public games found for "${username}" in the latest archive month.`,
+      `No public games found for "${username}" in the last ${archiveMonths} archive months.`,
     );
   }
 
   return {
     username,
-    archive: getArchiveLabel(archiveUrl),
+    archive: getArchiveWindow(archiveUrls),
+    archives: archiveUrls.map((archiveUrl) => getArchiveLabel(archiveUrl)),
     games,
   };
 }
