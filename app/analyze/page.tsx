@@ -2,11 +2,19 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import type { OpeningWeakness, OpeningsAnalysisResult } from "@/app/api/analyze/openings/route";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type Step = "input" | "loading" | "report";
+
+type SessionUser = {
+  id: string;
+  email: string;
+  chess_com_username: string | null;
+} | null;
 
 type ImportApiResponse = {
   games: unknown[];
@@ -684,6 +692,163 @@ function PabloSummaryCard({ summary }: { summary: string }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── Gate prompt for anonymous users ─────────────────────────────────────────
+
+function SaveGatePrompt({
+  report,
+  username,
+}: {
+  report: OpeningsAnalysisResult;
+  username: string;
+}) {
+  const [email, setEmail] = useState("");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || !trimmed.includes("@")) return;
+    setSaveStatus("sending");
+    try {
+      // First send magic link (which creates the account)
+      const linkRes = await fetch("/api/auth/send-magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed, redirect: "/dashboard" }),
+      });
+      if (linkRes.ok) {
+        setSaveStatus("sent");
+      } else {
+        setSaveStatus("error");
+      }
+    } catch {
+      setSaveStatus("error");
+    }
+    void report; void username; // will be saved after login
+  }
+
+  if (saveStatus === "sent") {
+    return (
+      <div
+        className="rounded-[1.75rem] border p-7 flex flex-col gap-3"
+        style={{
+          borderColor: "rgba(75,181,122,0.25)",
+          background: "linear-gradient(135deg, rgba(8,20,12,0.97) 0%, rgba(10,14,12,0.99) 100%)",
+        }}
+      >
+        <p className="text-sm font-bold" style={{ color: "#8ce0ac" }}>✓ Check your email</p>
+        <p className="text-sm leading-7" style={{ color: "var(--text-secondary)" }}>
+          Pablo sent a login link to <strong style={{ color: "var(--text-primary)" }}>{email}</strong>.
+          Click it to create your free account and save this report. Your progress will be waiting on your dashboard.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="rounded-[1.75rem] border p-7 sm:p-8 flex flex-col gap-5"
+      style={{
+        borderColor: "rgba(201,168,76,0.22)",
+        background: "linear-gradient(150deg, rgba(22,18,6,0.98) 0%, rgba(10,12,16,0.99) 100%)",
+        boxShadow: "0 24px 72px rgba(0,0,0,0.45)",
+      }}
+    >
+      {/* Pablo icon + label */}
+      <div className="flex items-center gap-3">
+        <div
+          className="flex items-center justify-center rounded-full border"
+          style={{
+            width: 42, height: 42,
+            borderColor: "rgba(201,168,76,0.3)",
+            background: "rgba(201,168,76,0.1)",
+            color: "var(--gold)", fontSize: "1.3rem", flexShrink: 0,
+          }}
+        >
+          ♞
+        </div>
+        <div>
+          <p className="text-sm font-bold" style={{ color: "var(--gold-light)" }}>Pablo</p>
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>Your opening coach</p>
+        </div>
+      </div>
+
+      <div>
+        <h3
+          className="text-xl font-bold mb-2"
+          style={{ fontFamily: "var(--font-playfair), serif" }}
+        >
+          Pablo wants to track your improvement.
+        </h3>
+        <p className="text-sm leading-7" style={{ color: "var(--text-secondary)" }}>
+          Create a free account to save this report. Next time you run an analysis, Pablo will show
+          you how your win rates have changed — opening by opening. It&apos;s the Duolingo streak,
+          but for chess.
+        </p>
+      </div>
+
+      {/* What you get */}
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {[
+          { icon: "📈", label: "Track win rate over time" },
+          { icon: "🏆", label: "Earn opening badges" },
+          { icon: "🔥", label: "Build an analysis streak" },
+        ].map((f) => (
+          <div
+            key={f.label}
+            className="flex items-center gap-2 rounded-xl border px-3 py-2"
+            style={{ borderColor: "rgba(201,168,76,0.12)", background: "rgba(201,168,76,0.05)" }}
+          >
+            <span style={{ fontSize: "1rem" }}>{f.icon}</span>
+            <span className="text-xs" style={{ color: "var(--text-secondary)" }}>{f.label}</span>
+          </div>
+        ))}
+      </div>
+
+      <form onSubmit={handleSave} className="flex flex-col gap-3 sm:flex-row">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="your@email.com"
+          className="flex-1 rounded-2xl border px-5 py-3.5 text-base outline-none transition-all"
+          style={{
+            borderColor: "var(--border-gold)",
+            background: "rgba(10,11,12,0.9)",
+            color: "var(--text-primary)",
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = "var(--gold-dim)";
+            e.currentTarget.style.boxShadow = "0 0 0 3px rgba(201,168,76,0.12)";
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = "var(--border-gold)";
+            e.currentTarget.style.boxShadow = "";
+          }}
+        />
+        <button
+          type="submit"
+          disabled={saveStatus === "sending"}
+          className="btn-gold rounded-2xl px-7 py-3.5 text-sm font-bold whitespace-nowrap"
+          style={{ color: "#0a0b0c", opacity: saveStatus === "sending" ? 0.7 : 1 }}
+        >
+          {saveStatus === "sending" ? "Sending..." : "Save this report →"}
+        </button>
+      </form>
+
+      {saveStatus === "error" && (
+        <p className="text-sm" style={{ color: "#ff9a9a" }}>Something went wrong. Try again.</p>
+      )}
+
+      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+        Free forever · No credit card · No spam
+      </p>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function UpgradeCTA({ worstOpening }: { worstOpening: string | null }) {
   const label = worstOpening
     ? `Ready to fix your ${worstOpening} for good?`
@@ -745,14 +910,33 @@ function UpgradeCTA({ worstOpening }: { worstOpening: string | null }) {
 function StepReport({
   report,
   username,
+  sessionUser,
   onReset,
 }: {
   report: OpeningsAnalysisResult;
   username: string;
+  sessionUser: SessionUser;
   onReset: () => void;
 }) {
   const worstOpening =
     report.weaknesses.length > 0 ? report.weaknesses[0].opening : null;
+  const [autoSaved, setAutoSaved] = useState(false);
+  const [autoSaveError, setAutoSaveError] = useState(false);
+
+  // Auto-save for logged-in users
+  useEffect(() => {
+    if (!sessionUser) return;
+    fetch("/api/analyses/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ result: report, chessUsername: username }),
+    })
+      .then((r) => {
+        if (r.ok) setAutoSaved(true);
+        else setAutoSaveError(true);
+      })
+      .catch(() => setAutoSaveError(true));
+  }, [sessionUser, report, username]);
 
   return (
     <main
@@ -856,8 +1040,46 @@ function StepReport({
           <PabloSummaryCard summary={report.summary} />
         </div>
 
+        {/* Auto-save indicator (logged in users) */}
+        {sessionUser && (autoSaved || autoSaveError) && (
+          <div
+            className="animate-fadeInUp rounded-2xl border px-5 py-4 flex items-center gap-3"
+            style={{
+              opacity: 0,
+              animationDelay: "0.5s",
+              borderColor: autoSaved ? "rgba(75,181,122,0.2)" : "rgba(224,97,97,0.2)",
+              background: autoSaved ? "rgba(75,181,122,0.05)" : "rgba(224,97,97,0.05)",
+            }}
+          >
+            <span style={{ fontSize: "1.1rem" }}>{autoSaved ? "✓" : "!"}</span>
+            <div>
+              {autoSaved ? (
+                <>
+                  <span className="text-sm font-bold" style={{ color: "#8ce0ac" }}>
+                    Saved to your account.
+                  </span>{" "}
+                  <Link href="/dashboard" className="text-sm underline" style={{ color: "#8ce0ac" }}>
+                    View your dashboard →
+                  </Link>
+                </>
+              ) : (
+                <span className="text-sm" style={{ color: "#ff9a9a" }}>
+                  Couldn&apos;t auto-save this analysis. Your session may have expired.
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Gate prompt (anonymous users) */}
+        {!sessionUser && (
+          <div className="animate-fadeInUp" style={{ opacity: 0, animationDelay: "0.52s" }}>
+            <SaveGatePrompt report={report} username={username} />
+          </div>
+        )}
+
         {/* Upgrade CTA */}
-        <div className="animate-fadeInUp" style={{ opacity: 0, animationDelay: "0.55s" }}>
+        <div className="animate-fadeInUp" style={{ opacity: 0, animationDelay: "0.62s" }}>
           <UpgradeCTA worstOpening={worstOpening} />
         </div>
       </div>
@@ -867,11 +1089,21 @@ function StepReport({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function AnalyzePage() {
+function AnalyzePageInner() {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>("input");
   const [report, setReport] = useState<OpeningsAnalysisResult | null>(null);
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(searchParams.get("username") ?? "");
   const [errorMessage, setErrorMessage] = useState("");
+  const [sessionUser, setSessionUser] = useState<SessionUser>(undefined as unknown as SessionUser);
+
+  // Check session on mount
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((d: { user: SessionUser }) => setSessionUser(d.user ?? null))
+      .catch(() => setSessionUser(null));
+  }, []);
 
   // Keep a ref for min loading time — we want at least the full animation
   const minLoadTimeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -983,8 +1215,23 @@ export default function AnalyzePage() {
   }
 
   if (step === "report" && report) {
-    return <StepReport report={report} username={username} onReset={handleReset} />;
+    return (
+      <StepReport
+        report={report}
+        username={username}
+        sessionUser={sessionUser}
+        onReset={handleReset}
+      />
+    );
   }
 
   return <StepInput onSubmit={handleSubmit} apiError={errorMessage || undefined} />;
+}
+
+export default function AnalyzePage() {
+  return (
+    <Suspense>
+      <AnalyzePageInner />
+    </Suspense>
+  );
 }
