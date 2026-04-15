@@ -1,0 +1,1058 @@
+[
+  {
+    "opening_id": "italian_game",
+    "eco_codes": ["C50", "C51", "C52", "C53", "C54", "C55"],
+    "name": "Italian Game",
+    "common_name": "Italian",
+    "move_order": "1.e4 e5 2.Nf3 Nc6 3.Bc4",
+    "variations": [
+      { "name": "Giuoco Piano", "moves": "1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.c3 Nf6 5.d4", "brief_description": "Classical central battle after White builds the ideal pawn center" },
+      { "name": "Evans Gambit", "moves": "1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.b4", "brief_description": "Aggressive pawn sacrifice for rapid development and attack" },
+      { "name": "Two Knights Defense", "moves": "1.e4 e5 2.Nf3 Nc6 3.Bc4 Nf6", "brief_description": "Black fights back immediately; leads to sharp tactical play" },
+      { "name": "Hungarian Defense", "moves": "1.e4 e5 2.Nf3 Nc6 3.Bc4 Be7", "brief_description": "Solid but passive; Black avoids complications at the cost of activity" }
+    ],
+    "strategic_themes": ["central control", "bishop pair exploitation", "kingside attack", "e5 pawn pressure", "open c-file play"],
+    "typical_white_plan": "White aims to build a strong pawn center with c3 and d4, then use the active bishop on c4 to pressure f7. In the Giuoco Piano, White wants to open the center and use the bishop pair in the resulting open positions.",
+    "typical_black_plan": "Black typically mirrors with ...Bc5 or fights back with the Two Knights. The goal is active piece play and contesting the center. In the Giuoco Piano, Black must find counterplay on the queenside or with the ...d5 break.",
+    "key_pieces": ["light-squared bishop (c4)", "knight on f3", "pawn on e4"],
+    "common_mistakes_club_players": [
+      "Playing 4.Ng5 against the Two Knights and not knowing the follow-up after 4...d5",
+      "Putting the bishop on b3 too early, making it passive",
+      "Forgetting about the ...Ng4 resource when White castles queenside",
+      "Moving the same piece twice in the opening without a concrete reason"
+    ],
+    "common_mistakes_intermediate": [
+      "Misjudging the timing of d4 in the Giuoco Piano — going too early or too late",
+      "Not knowing the critical 9...b5 resource in the main line Giuoco",
+      "Failing to coordinate rooks after castling in the endgame-leaning lines"
+    ],
+    "critical_moves": [
+      { "move": "4.c3", "explanation": "Sets up d4 to build the ideal center. The defining move of the Giuoco Piano." },
+      { "move": "4...Nf6", "explanation": "Black's most active response to 3.Bc4 — immediately attacking the e4 pawn and entering Two Knights territory." }
+    ],
+    "traps_and_tricks": [
+      { "name": "Legal's Mate", "moves": "1.e4 e5 2.Nf3 Nc6 3.Bc4 d6 4.Nc3 Bg4 5.Nxe5 Bxd1 6.Bxf7+ Ke7 7.Nd5#", "explanation": "Classic pseudo-sacrifice of the queen; only works if Black greedily takes the queen without checking for the mating attack." },
+      { "name": "Fried Liver Attack", "moves": "1.e4 e5 2.Nf3 Nc6 3.Bc4 Nf6 4.Ng5 d5 5.exd5 Nxd5 6.Nxf7", "explanation": "Wild sacrifice of the knight for a devastating attack on Black's king; Black must know the exact defense or gets crushed." }
+    ],
+    "model_games": [
+      { "player_white": "Paul Morphy", "player_black": "Duke of Brunswick", "year": 1858, "event": "Paris Opera", "why_study_it": "The most instructive attacking game in chess history — shows how to use open lines and development advantage" },
+      { "player_white": "Garry Kasparov", "player_black": "Vassily Ivanchuk", "year": 1995, "event": "Linares", "why_study_it": "Modern GM treatment of the Giuoco Piano — shows how to handle the resulting endgame" }
+    ],
+    "elo_suitability": { "min": 600, "max": 2800, "notes": "Universal opening. Club players love it for its simplicity; GMs use it for its deep strategic richness." },
+    "pablo_opinion": "The Italian is chess in its purest form. You develop, you fight for the center, you castle, you attack. If you can't win from an Italian Game position, you can't win from anything. Every player under 1800 should start here before touching anything fancier.",
+    "recommended_study_order": ["Learn the basic Giuoco Piano pawn structure", "Study c3+d4 timing", "Learn Two Knights responses", "Study Evans Gambit as a weapon", "Deep-dive the main Giuoco lines"],
+    "weakness_signals": ["Consistently gets outplayed in open e4-e5 positions", "Doesn't know what to do after 3...Bc5", "Loses bishop pair without compensation"]
+  },
+  {
+    "opening_id": "ruy_lopez",
+    "eco_codes": ["C60", "C61", "C62", "C63", "C64", "C65", "C66", "C67", "C68", "C69", "C70", "C71", "C72", "C73", "C74", "C75", "C76", "C77", "C78", "C79", "C80", "C81", "C82", "C83", "C84", "C85", "C86", "C87", "C88", "C89", "C90", "C91", "C92", "C93", "C94", "C95", "C96", "C97", "C98", "C99"],
+    "name": "Ruy Lopez",
+    "common_name": "Spanish Opening",
+    "move_order": "1.e4 e5 2.Nf3 Nc6 3.Bb5",
+    "variations": [
+      { "name": "Morphy Defense (Open Ruy Lopez)", "moves": "1.e4 e5 2.Nf3 Nc6 3.Bb5 a6 4.Ba4 Nf6 5.0-0 Nxe4", "brief_description": "Black sacrifices the pawn to free their game; leads to dynamic open positions" },
+      { "name": "Closed Ruy Lopez", "moves": "1.e4 e5 2.Nf3 Nc6 3.Bb5 a6 4.Ba4 Nf6 5.0-0 Be7 6.Re1 b5 7.Bb3 d6 8.c3 0-0", "brief_description": "The main line; rich strategic battle with long-term maneuvering" },
+      { "name": "Marshall Attack", "moves": "1.e4 e5 2.Nf3 Nc6 3.Bb5 a6 4.Ba4 Nf6 5.0-0 Be7 6.Re1 b5 7.Bb3 0-0 8.c3 d5", "brief_description": "Explosive gambit; Black sacrifices a pawn for crushing kingside attack" },
+      { "name": "Steinitz Defense", "moves": "1.e4 e5 2.Nf3 Nc6 3.Bb5 d6", "brief_description": "Solid but cramped; Black over-defends e5" },
+      { "name": "Berlin Defense", "moves": "1.e4 e5 2.Nf3 Nc6 3.Bb5 Nf6 4.0-0 Nxe4 5.d4 Nd6 6.Bxc6 dxc6 7.dxe5 Nf5 8.Qxd8+ Kxd8", "brief_description": "The Berlin Wall — drawish endgame beloved by top GMs for its solidity" }
+    ],
+    "strategic_themes": ["long-term pressure on e5", "bishop pair advantage", "queenside pawn majority", "rook on e1 pressure", "knight maneuver to g5 or f5"],
+    "typical_white_plan": "White maintains permanent pressure on the e5 pawn through the bishop on a4 and rook on e1. The long-term plan involves central domination via d4, then exploiting the queenside majority or launching a kingside attack. The Ruy Lopez is a game of long-term strategic grinding.",
+    "typical_black_plan": "Black must constantly fight to maintain the e5 pawn or gain counterplay. The typical plans include ...b5+...d5 to free the game, the Marshall Attack gambit, or the Berlin endgame. Black needs active piece play to equalize.",
+    "key_pieces": ["bishop on b5/a4 (the Spanish bishop)", "rook on e1", "knight on f3", "e5 pawn"],
+    "common_mistakes_club_players": [
+      "Playing 4.Ba4 Nf6 5.Bxc6?! — trading the Spanish bishop too early for no reason",
+      "Not knowing the anti-Marshall systems",
+      "Ignoring Black's ...b4 idea after ...a5",
+      "Failing to use the a4+b3 bishop as a long-range weapon in the endgame"
+    ],
+    "common_mistakes_intermediate": [
+      "Missing the critical 9.h3 move order in the main Closed Lopez",
+      "Not knowing when to go for the kingside attack vs the queenside plan",
+      "Allowing the Marshall Attack without knowing the main defensive setups"
+    ],
+    "critical_moves": [
+      { "move": "3.Bb5", "explanation": "The defining move — not directly attacking e5 but pressuring the c6 knight that defends it. Indirectly threatening to win e5 after 4.Bxc6 dxc6 5.Nxe5." },
+      { "move": "9.h3", "explanation": "The key move in the main Closed Ruy Lopez — prevents ...Bg4 and prepares d4 at the right moment." }
+    ],
+    "traps_and_tricks": [
+      { "name": "Noah's Ark Trap", "moves": "1.e4 e5 2.Nf3 Nc6 3.Bb5 a6 4.Ba4 d6 5.d4 b5 6.Bb3 Nxd4 7.Nxd4 exd4 8.Qxd4 c5 9.Qd5 Be6 10.Qc6+ Bd7 11.Qd5 c4", "explanation": "White's bishop gets trapped by Black's c and b pawns marching forward — a classic Ruy Lopez trap that's caught grandmasters." }
+    ],
+    "model_games": [
+      { "player_white": "Bobby Fischer", "player_black": "Boris Spassky", "year": 1972, "event": "World Championship Game 6", "why_study_it": "Fischer's masterpiece — the most famous Ruy Lopez game showing perfect strategic play" },
+      { "player_white": "Magnus Carlsen", "player_black": "Viswanathan Anand", "year": 2013, "event": "World Championship", "why_study_it": "Modern treatment of the Closed Ruy Lopez showing how top players handle endgames" }
+    ],
+    "elo_suitability": { "min": 1400, "max": 2900, "notes": "The most deeply analyzed opening in chess history. Best suited for players who enjoy long strategic battles." },
+    "pablo_opinion": "This is THE opening. Every serious player has to face the Spanish at some point. If you're White and you're not playing 1.e4, you're leaving points on the table. And if you're Black, you better have your Ruy Lopez answer ready because your opponent has been studying this since they were 12.",
+    "recommended_study_order": ["Learn basic Closed Ruy Lopez structure", "Study the ...d5 break conditions", "Learn anti-Marshall systems", "Study Open Ruy Lopez", "Learn Berlin Wall if playing at high level"],
+    "weakness_signals": ["Consistently loses the e5 pawn under pressure", "Doesn't know when to exchange the Spanish bishop", "Gets outplayed in the typical Ruy Lopez endgame"]
+  },
+  {
+    "opening_id": "kings_gambit",
+    "eco_codes": ["C30", "C31", "C32", "C33", "C34", "C35", "C36", "C37", "C38", "C39"],
+    "name": "King's Gambit",
+    "common_name": "King's Gambit",
+    "move_order": "1.e4 e5 2.f4",
+    "variations": [
+      { "name": "King's Gambit Accepted", "moves": "1.e4 e5 2.f4 exf4", "brief_description": "Black takes the pawn and must fight to keep it" },
+      { "name": "Classical King's Gambit", "moves": "1.e4 e5 2.f4 exf4 3.Nf3", "brief_description": "Main line; White develops while threatening to recapture" },
+      { "name": "King's Gambit Declined", "moves": "1.e4 e5 2.f4 Bc5", "brief_description": "Black declines and aims for a counter-attack with the bishop" },
+      { "name": "Falkbeer Counter-Gambit", "moves": "1.e4 e5 2.f4 d5", "brief_description": "Black fights back immediately in the center" }
+    ],
+    "strategic_themes": ["open f-file attack", "rapid development", "kingside attack", "sacrificial play", "initiative over material"],
+    "typical_white_plan": "White sacrifices the f-pawn for rapid development and a devastating attack along the open f-file. The ideal continuation involves Nf3, Bc4, d4, and castling, then using the f-file and the bishop battery to overwhelm Black's king position.",
+    "typical_black_plan": "After accepting, Black can try to keep the pawn with ...g5 or give it back for quick development with ...d5. The key is finding a way to neutralize White's fierce initiative before it becomes a mating attack.",
+    "key_pieces": ["pawn on f4 (or f-file rook after castling)", "bishop on c4", "knight on f3"],
+    "common_mistakes_club_players": [
+      "Playing 3.Bc4 immediately (the Bishop's Gambit) without knowing the refutations",
+      "Allowing ...g5-g4 to harass the f3 knight before completing development",
+      "Not knowing how to handle the Falkbeer Counter-Gambit"
+    ],
+    "common_mistakes_intermediate": [
+      "Spending too many moves trying to recapture the f4 pawn instead of developing",
+      "Not knowing the critical 9.Kh1! resource in the Muzio Gambit lines"
+    ],
+    "critical_moves": [
+      { "move": "3.Nf3", "explanation": "Develops with tempo, attacks the pawn on f4 indirectly, and prepares to castle — the classical approach." },
+      { "move": "3...g5", "explanation": "The Kieseritzky counterpart — Black defends the pawn aggressively and threatens ...g4 to harass White's knight." }
+    ],
+    "traps_and_tricks": [
+      { "name": "Muzio Gambit", "moves": "1.e4 e5 2.f4 exf4 3.Nf3 g5 4.Bc4 g4 5.0-0 gxf3 6.Qxf3", "explanation": "White sacrifices the knight for an overwhelming attack — Black needs exact defense or gets mated." }
+    ],
+    "model_games": [
+      { "player_white": "Rudolf Spielmann", "player_black": "Siegbert Tarrasch", "year": 1923, "event": "Teplitz-Schönau", "why_study_it": "Classic attacking demonstration in the King's Gambit — shows the power of the open f-file" },
+      { "player_white": "Boris Spassky", "player_black": "David Bronstein", "year": 1960, "event": "Leningrad", "why_study_it": "Modern masterpiece showing how to handle the King's Gambit at the highest level" }
+    ],
+    "elo_suitability": { "min": 800, "max": 2000, "notes": "Extremely dangerous at club level; becomes harder to employ above 2000 where opponents know the key defensive setups." },
+    "pablo_opinion": "The King's Gambit is chess adrenaline in a bottle. Nobody under 1600 knows how to defend against it properly. Is it objectively sound? Doesn't matter. You'll win 70% of your games before move 20 because nobody is ready for this kind of chaos.",
+    "recommended_study_order": ["Learn the basic attacking patterns on the f-file", "Study the Kieseritzky line", "Learn the Falkbeer Counter-Gambit response", "Study Muzio Gambit tricks"],
+    "weakness_signals": ["Loves tactical games and sharp positions", "Tends to sacrifice material for attacks", "Gets bored in positional games"]
+  },
+  {
+    "opening_id": "vienna_game",
+    "eco_codes": ["C25", "C26", "C27", "C28", "C29"],
+    "name": "Vienna Game",
+    "common_name": "Vienna",
+    "move_order": "1.e4 e5 2.Nc3",
+    "variations": [
+      { "name": "Vienna Gambit", "moves": "1.e4 e5 2.Nc3 Nc6 3.f4", "brief_description": "King's Gambit style attack with extra knight development" },
+      { "name": "Vienna Game with 2...Nf6", "moves": "1.e4 e5 2.Nc3 Nf6 3.f4", "brief_description": "Transposes to Vienna Gambit territory after Black's early knight move" },
+      { "name": "Frankenstein-Dracula Variation", "moves": "1.e4 e5 2.Nc3 Nf6 3.Bc4 Nxe4 4.Qh5 Nd6 5.Bb3 Nc6 6.Nb5 g6 7.Qf3 f5", "brief_description": "Wildly tactical line with a scary name for a reason" }
+    ],
+    "strategic_themes": ["central control", "f4 push threat", "flexible piece placement", "transposition to King's Gambit"],
+    "typical_white_plan": "White delays the f-pawn advance until the knight is on c3, making f4 more powerful. This avoids some King's Gambit Accepted defenses and keeps transposition options open.",
+    "typical_black_plan": "Black should play actively with ...Nf6 or ...Bc5, aiming to challenge White's center before f4 is played. The Vienna requires Black to be aggressive.",
+    "key_pieces": ["knight on c3", "pawn on e4", "f-pawn (potential f4)"],
+    "common_mistakes_club_players": [
+      "Playing passively with ...d6 and allowing White to build a massive center",
+      "Not being alert to the f4-f5 pawn advance"
+    ],
+    "common_mistakes_intermediate": [
+      "Mishandling the Frankenstein-Dracula variation — it requires very precise play from both sides"
+    ],
+    "critical_moves": [
+      { "move": "3.f4", "explanation": "The Vienna Gambit — transforms the opening into an aggressive attacking game." }
+    ],
+    "traps_and_tricks": [
+      { "name": "Vienna Trap", "moves": "1.e4 e5 2.Nc3 Nf6 3.Bc4 Nxe4 4.Qh5 Nd6 5.Bb3 Nc6 6.Nb5 g6 7.Qf3 f5 8.Qd5 Qe7 9.Nxc7+ Kd8 10.Nxa8", "explanation": "White wins the rook on a8 after the chaotic Frankenstein-Dracula sequence." }
+    ],
+    "model_games": [
+      { "player_white": "Mikhail Tal", "player_black": "Various", "year": 1960, "event": "Various tournaments", "why_study_it": "Tal loved Vienna positions — his games show how to exploit the resulting chaotic positions" }
+    ],
+    "elo_suitability": { "min": 1000, "max": 2400, "notes": "Excellent surprise weapon at all levels; particularly effective below 1800 where opponents don't know the defensive resources." },
+    "pablo_opinion": "The Vienna is what you play when you want the spirit of the King's Gambit but with some backup. You're threatening f4 on every move, your opponent can't figure out your plan, and half the lines end in crazy tactics. Underrated by a mile.",
+    "recommended_study_order": ["Basic Vienna Gambit plans", "Frankenstein-Dracula awareness", "Vienna to King's Gambit transpositions"],
+    "weakness_signals": ["Uncomfortable with tactical complications", "Doesn't know King's Gambit theory"]
+  },
+  {
+    "opening_id": "sicilian_najdorf",
+    "eco_codes": ["B90", "B91", "B92", "B93", "B94", "B95", "B96", "B97", "B98", "B99"],
+    "name": "Sicilian Defense, Najdorf Variation",
+    "common_name": "Najdorf",
+    "move_order": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6",
+    "variations": [
+      { "name": "English Attack", "moves": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6 6.Be3 e5 7.Nb3 Be6 8.f3", "brief_description": "White builds a kingside pawn roller; very popular at GM level" },
+      { "name": "Classical (6.Bg5)", "moves": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6 6.Bg5", "brief_description": "White pins the knight and prepares a kingside attack; Poisoned Pawn variation lurks" },
+      { "name": "Poisoned Pawn", "moves": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6 6.Bg5 e6 7.f4 Qb6 8.Qd2 Qxb2", "brief_description": "Black grabs the b2 pawn and must survive White's massive attack" },
+      { "name": "Scheveningen with 6.Be2", "moves": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6 6.Be2 e6", "brief_description": "Najdorf transposes to Scheveningen — solid, classical approach" },
+      { "name": "Adams Attack (6.h3)", "moves": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6 6.h3", "brief_description": "White stops ...Bg4 and prepares g4 kingside expansion" }
+    ],
+    "strategic_themes": ["queenside counterplay", "opposite-side castling", "e5 square control", "open c-file", "minority attack"],
+    "typical_white_plan": "White typically castles queenside and launches a kingside pawn storm with f4-f5 or g4-g5. The goal is to checkmate Black's king before Black's queenside counterplay arrives. Timing is critical — every tempo matters.",
+    "typical_black_plan": "Black's ...a6 is prophylactic (stops Bb5) and prepares ...b5, ...Bb7, ...Nbd7, and queenside counterplay. The typical plan is ...b5-b4 to attack White's queenside while defending against the kingside attack. Black often needs to calculate very precisely.",
+    "key_pieces": ["knight on f6", "queen", "dark-squared bishop", "pawn on a6"],
+    "common_mistakes_club_players": [
+      "Playing ...Nc6 instead of ...Nbd7 in the Najdorf, blocking the queenside counterplay",
+      "Launching ...b4 too early before completing development",
+      "Not knowing what to do when White plays 6.Be3 (English Attack) vs 6.Bg5",
+      "Getting mated on the kingside because ...b5 was played too slowly"
+    ],
+    "common_mistakes_intermediate": [
+      "Mishandling the Poisoned Pawn — Black must know the exact defensive sequence",
+      "Allowing White's f5 break without adequate counterplay on the queenside",
+      "Not knowing the critical ... e5 idea to challenge White's center"
+    ],
+    "critical_moves": [
+      { "move": "5...a6", "explanation": "The Najdorf move — prevents Bb5+ and prepares ...b5 expansion. Fischer called it 'the best move in the Sicilian.'" },
+      { "move": "6.Bg5", "explanation": "The sharpest continuation — pins the knight and prepares a massive kingside attack with f4-f5." }
+    ],
+    "traps_and_tricks": [
+      { "name": "Poisoned Pawn Refusal Trick", "moves": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6 6.Bg5 e6 7.f4 Be7 8.Qf3 Qc7 9.0-0-0 Nbd7 10.g4", "explanation": "If Black refuses the Poisoned Pawn, White goes full attack with g4-g5." }
+    ],
+    "model_games": [
+      { "player_white": "Robert Fischer", "player_black": "Boris Spassky", "year": 1972, "event": "World Championship Game 11", "why_study_it": "Fischer's Najdorf masterpiece — Poisoned Pawn variation played perfectly" },
+      { "player_white": "Kasparov", "player_black": "Anand", "year": 1995, "event": "World Championship", "why_study_it": "English Attack played at the highest level — perfect demonstration of White's attack" }
+    ],
+    "elo_suitability": { "min": 1600, "max": 2900, "notes": "The most played opening at GM level. Very complex — not recommended for beginners. Requires significant study investment." },
+    "pablo_opinion": "The Najdorf is the most famous opening in chess for a reason: it's the battleground where the biggest games in history were decided. Fischer, Kasparov, Anand — they all built careers on it. But don't kid yourself: if you're under 1800 and playing the Najdorf, you're a pilot who can't read the instruments. Learn it properly or pick something else.",
+    "recommended_study_order": ["Understand ...a6's purpose", "Learn ...b5-b4 counterplay plan", "Study English Attack (6.Be3 f3) structure", "Learn 6.Bg5 and Poisoned Pawn", "Deep-dive one variation to GM level"],
+    "weakness_signals": ["Loses to 6.Bg5 attacks consistently", "Doesn't understand when to push ...b4", "Gets confused by White's different 6th moves"]
+  },
+  {
+    "opening_id": "sicilian_dragon",
+    "eco_codes": ["B70", "B71", "B72", "B73", "B74", "B75", "B76", "B77", "B78", "B79"],
+    "name": "Sicilian Defense, Dragon Variation",
+    "common_name": "Dragon",
+    "move_order": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 g6",
+    "variations": [
+      { "name": "Yugoslav Attack", "moves": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 g6 6.Be3 Bg7 7.f3 0-0 8.Qd2 Nc6 9.0-0-0", "brief_description": "White's main weapon — opposite-side castling, h4-h5 attack" },
+      { "name": "Classical Dragon", "moves": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 g6 6.Be2", "brief_description": "White plays quietly — less sharp but still strategic" },
+      { "name": "Accelerated Dragon", "moves": "1.e4 c5 2.Nf3 Nc6 3.d4 cxd4 4.Nxd4 g6", "brief_description": "Dragon without ...d6 — avoids the Yugoslav Attack" }
+    ],
+    "strategic_themes": ["dragon bishop (g7)", "open c-file", "opposite-side castling", "h4-h5 attack", "d5 outpost"],
+    "typical_white_plan": "In the Yugoslav Attack, White launches h4-h5-h6, trying to trade off the Dragon bishop or create mating threats. The race is on — White attacks kingside, Black counterattacks queenside. White wins if the h-file opens before Black's queenside play arrives.",
+    "typical_black_plan": "Black's Dragon bishop dominates the diagonal. Plans include ...Qa5-b6 targeting the queenside, ...Nc4 pressure, and using the open c-file after ...Rxc3. Black must find counterplay fast before White's h-pawn reaches h6.",
+    "key_pieces": ["Dragon bishop on g7", "rook on c8", "knight on c4 (after ...Nc4)"],
+    "common_mistakes_club_players": [
+      "Playing the Classical Dragon but treating it like the Yugoslav — different plans required",
+      "Allowing h6 to trade off the Dragon bishop without adequate compensation",
+      "Not using the c-file actively",
+      "Playing ...d5 too early before the bishop is developed to g7"
+    ],
+    "common_mistakes_intermediate": [
+      "Getting the ...Nc4 timing wrong in the Yugoslav Attack",
+      "Not knowing the critical ...Rxc3 exchange sacrifice idea"
+    ],
+    "critical_moves": [
+      { "move": "9.0-0-0", "explanation": "White castles queenside in the Yugoslav Attack, creating the classic double-edged race position." },
+      { "move": "9...d5", "explanation": "Black's most aggressive response — immediately challenging White's center before the h-pawn attack arrives." }
+    ],
+    "traps_and_tricks": [
+      { "name": "Dragon Exchange Sacrifice", "moves": "...Rxc3 bxc3 followed by Qa5 or Ne5", "explanation": "Black sacrifices the exchange to destroy White's queenside structure and expose the king." }
+    ],
+    "model_games": [
+      { "player_white": "Veselin Topalov", "player_black": "Garry Kasparov", "year": 1996, "event": "Linares", "why_study_it": "Kasparov's incredible defense showing the Dragon's resilience" }
+    ],
+    "elo_suitability": { "min": 1400, "max": 2700, "notes": "Extremely sharp and double-edged. The Yugoslav Attack requires specific preparation from both sides." },
+    "pablo_opinion": "The Dragon is the most all-or-nothing opening in chess. Either you know the Yugoslav Attack lines cold or you're dead. I've seen 1600-rated players crush 2000-rated opponents with the Dragon because the 2000 didn't know the theory. That's the appeal — and the danger.",
+    "recommended_study_order": ["Learn Dragon bishop strategic value", "Study Yugoslav Attack structure", "Learn the ...Rxc3 exchange sacrifice", "Study Accelerated Dragon as alternative", "Deep-dive one Yugoslav Attack line"],
+    "weakness_signals": ["Doesn't understand the Dragon bishop's power", "Plays passively against h4-h5 attacks", "Loses races in double-edge positions"]
+  },
+  {
+    "opening_id": "sicilian_scheveningen",
+    "eco_codes": ["B80", "B81", "B82", "B83", "B84", "B85", "B86", "B87", "B88", "B89"],
+    "name": "Sicilian Defense, Scheveningen Variation",
+    "common_name": "Scheveningen",
+    "move_order": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 e6",
+    "variations": [
+      { "name": "Keres Attack", "moves": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 e6 6.g4", "brief_description": "Immediate aggressive advance; White attacks before Black sets up" },
+      { "name": "English Attack", "moves": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 e6 6.Be3 a6 7.f3 b5 8.Qd2", "brief_description": "Solid attacking setup with queenside castling" },
+      { "name": "Classical Scheveningen", "moves": "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 e6 6.Be2 Be7 7.0-0 0-0", "brief_description": "Solid, strategic approach — the Hedgehog structure" }
+    ],
+    "strategic_themes": ["hedgehog structure", "e5-d5 pawn breaks", "flexible piece placement", "queenside expansion with ...b5"],
+    "typical_white_plan": "White aims to exploit the slight space advantage with a kingside attack (f4-f5) or central domination. The Keres Attack with g4 is immediately aggressive. Otherwise, White prepares the f4 break methodically.",
+    "typical_black_plan": "Black creates a solid 'hedgehog' structure and waits for White to overextend, then springs back with ...b5 or ...d5. The key is knowing when to unleash the counterattack.",
+    "key_pieces": ["knight on f6", "bishop on e7", "the entire pawn chain"],
+    "common_mistakes_club_players": [
+      "Not knowing how to respond to the Keres Attack (6.g4)",
+      "Playing ...a5 instead of ...b5, weakening the queenside",
+      "Passive defense without any counterplay plan"
+    ],
+    "common_mistakes_intermediate": [
+      "Missing the ...d5 break opportunity when White overextends",
+      "Not using the ...b5-b4 break at the right moment"
+    ],
+    "critical_moves": [
+      { "move": "6.g4", "explanation": "The Keres Attack — immediately aggressive, preventing Black from settling into a comfortable hedgehog." },
+      { "move": "5...e6", "explanation": "The Scheveningen move — Black keeps the center flexible and avoids immediate complications." }
+    ],
+    "traps_and_tricks": [
+      { "name": "Keres Attack Trick", "moves": "6.g4 h6 7.h4 g5 8.hxg5 hxg5 9.Rxh8+ Qxh8 10.g6", "explanation": "If Black reacts incorrectly to g4, White can create a massive attack." }
+    ],
+    "model_games": [
+      { "player_white": "Anatoly Karpov", "player_black": "Various", "year": 1970, "event": "Various", "why_study_it": "Karpov was the master of exploiting the Scheveningen hedgehog structure" }
+    ],
+    "elo_suitability": { "min": 1400, "max": 2800, "notes": "Very flexible opening — can be used as a Najdorf or Kan transposition." },
+    "pablo_opinion": "The Scheveningen is the opening for players who want Sicilian play without the ultra-sharp theory load. You build a solid structure, you wait, you counterattack. Kasparov built half his career on it. The problem is club players play it passively and get squeezed.",
+    "recommended_study_order": ["Understand hedgehog structure", "Learn Keres Attack response", "Study ...b5 and ...d5 break timing", "Learn English Attack setup"],
+    "weakness_signals": ["Gets squeezed in space disadvantage positions", "Doesn't know when to break with ...b5 or ...d5"]
+  },
+  {
+    "opening_id": "sicilian_kan",
+    "eco_codes": ["B41", "B42", "B43", "B44"],
+    "name": "Sicilian Defense, Kan Variation",
+    "common_name": "Kan (or Taimanov)",
+    "move_order": "1.e4 c5 2.Nf3 e6 3.d4 cxd4 4.Nxd4 a6",
+    "variations": [
+      { "name": "Taimanov Variation", "moves": "1.e4 c5 2.Nf3 e6 3.d4 cxd4 4.Nxd4 Nc6", "brief_description": "Black develops the knight first; often transposes to Kan" },
+      { "name": "Kan with ...Qc7", "moves": "1.e4 c5 2.Nf3 e6 3.d4 cxd4 4.Nxd4 a6 5.Nc3 Qc7", "brief_description": "Flexible queen placement; prepares queenside counterplay" }
+    ],
+    "strategic_themes": ["flexible pawn structure", "queenside counterplay", "...b5 expansion", "central flexibility"],
+    "typical_white_plan": "White tries to exploit the slow start with c4 (Maroczy Bind) or aggressive piece play. The Maroczy Bind (c4) restricts Black's ...b5 expansion and clamps down on d5.",
+    "typical_black_plan": "Black keeps options open — can transpose to Scheveningen with ...d6 or Taimanov with ...Nc6. The ...a6+...b5 plan is the key idea, expanding on the queenside before White can establish a bind.",
+    "key_pieces": ["queen on c7", "light-squared bishop", "b-pawn"],
+    "common_mistakes_club_players": [
+      "Playing ...d5 too early without proper preparation",
+      "Allowing the Maroczy Bind (c4) without a plan to deal with it",
+      "Not using the ...b5 expansion at the right moment"
+    ],
+    "common_mistakes_intermediate": [
+      "Mishandling the Maroczy Bind — needs very specific defensive technique"
+    ],
+    "critical_moves": [
+      { "move": "4...a6", "explanation": "The Kan move — prevents Bb5+ and keeps options open for ...b5 expansion." }
+    ],
+    "traps_and_tricks": [],
+    "model_games": [
+      { "player_white": "Garry Kasparov", "player_black": "Viswanathan Anand", "year": 1996, "event": "World Championship", "why_study_it": "Shows how to handle the Kan at the highest level" }
+    ],
+    "elo_suitability": { "min": 1200, "max": 2700, "notes": "Pablo's recommended Sicilian for most players — flexible and solid without requiring Dragon/Najdorf depth." },
+    "pablo_opinion": "The Kan is the Sicilian for players who want to be dangerous without memorizing 40 moves of Najdorf theory. You play ...a6, you keep everything flexible, and you counterattack when the time is right. I recommend this to almost every player under 2000 who asks me what Sicilian to play.",
+    "recommended_study_order": ["Learn ...a6 purpose", "Study Maroczy Bind response", "Learn ...b5-b4 timing", "Study Taimanov transpositions"],
+    "weakness_signals": ["Wants Sicilian play without heavy theory", "Gets confused by different White setups"]
+  },
+  {
+    "opening_id": "french_defense",
+    "eco_codes": ["C00", "C01", "C02", "C03", "C04", "C05", "C06", "C07", "C08", "C09", "C10", "C11", "C12", "C13", "C14", "C15", "C16", "C17", "C18", "C19"],
+    "name": "French Defense",
+    "common_name": "French",
+    "move_order": "1.e4 e6 2.d4 d5",
+    "variations": [
+      { "name": "Advance Variation", "moves": "1.e4 e6 2.d4 d5 3.e5", "brief_description": "White grabs space immediately; classic blocked-center French" },
+      { "name": "Exchange Variation", "moves": "1.e4 e6 2.d4 d5 3.exd5 exd5", "brief_description": "Simplified position; often drawish but White can still press" },
+      { "name": "Classical Variation", "moves": "1.e4 e6 2.d4 d5 3.Nc3 Nf6 4.Bg5", "brief_description": "Main line with the bishop pin; lots of theory" },
+      { "name": "Winawer Variation", "moves": "1.e4 e6 2.d4 d5 3.Nc3 Bb4", "brief_description": "Black pins the knight immediately; very sharp and theoretically important" },
+      { "name": "Tarrasch Variation", "moves": "1.e4 e6 2.d4 d5 3.Nd2", "brief_description": "White avoids the Winawer pin; keeps the knight flexible" }
+    ],
+    "strategic_themes": ["pawn chain battle", "c5 break", "kingside attack vs queenside counterplay", "bad bishop on c8", "f6 break"],
+    "typical_white_plan": "White builds a pawn chain e5-d4 in the Advance and aims for a kingside attack with f4-f5 or Nf3-Ng5. In other lines, White exploits Black's passive bishop on c8 and space advantage.",
+    "typical_black_plan": "Black's main counterplay comes from ...c5 (attacking the d4 pawn) and the ...f6 break (attacking the e5 pawn). The c8 bishop is the main problem piece — finding an active role for it is the strategic key.",
+    "key_pieces": ["bad bishop on c8", "d4 pawn", "e5 pawn", "knight on d7 or f6"],
+    "common_mistakes_club_players": [
+      "Not playing ...c5 early enough in the Advance Variation",
+      "Developing the bishop to d6 in the Advance without understanding the plan",
+      "Not knowing the ...f6 break timing",
+      "Playing the French but never learning what to do with the c8 bishop"
+    ],
+    "common_mistakes_intermediate": [
+      "Mishandling the Winawer's complications — very sharp and specific",
+      "Allowing White's f5 break without adequate counterplay"
+    ],
+    "critical_moves": [
+      { "move": "3.e5", "explanation": "The Advance — establishes a space advantage but gives Black a clear target at e5." },
+      { "move": "3...Bb4", "explanation": "The Winawer — immediately creates tension and forces White to make a structural decision." }
+    ],
+    "traps_and_tricks": [
+      { "name": "Exchange French Draw Trap", "moves": "1.e4 e6 2.d4 d5 3.exd5 exd5 4.Nf3 Nf6 5.Bd3 Bd6 6.0-0 0-0", "explanation": "The Exchange French can quickly liquidate to a dead draw if both sides aren't careful." }
+    ],
+    "model_games": [
+      { "player_white": "Victor Korchnoi", "player_black": "Anatoly Karpov", "year": 1978, "event": "World Championship", "why_study_it": "Classic French Defense battle — shows both sides' typical plans perfectly" }
+    ],
+    "elo_suitability": { "min": 1000, "max": 2800, "notes": "Reliable and strategic. The bad bishop problem gives motivated students something to solve." },
+    "pablo_opinion": "French players are a special breed — they like suffering. You accept a bad bishop for 30 moves and then somehow win. It's a perfectly good defense, but you have to commit to it. Half the French players I see aren't committed — they're hoping the position becomes easy. It never does.",
+    "recommended_study_order": ["Understand the pawn chain dynamics", "Learn ...c5 break timing", "Study Advance Variation plans", "Learn Winawer complications", "Master the ...f6 break"],
+    "weakness_signals": ["Struggles with blocked center positions", "Bad bishop management issues", "Doesn't know ...c5 timing"]
+  },
+  {
+    "opening_id": "caro_kann",
+    "eco_codes": ["B10", "B11", "B12", "B13", "B14", "B15", "B16", "B17", "B18", "B19"],
+    "name": "Caro-Kann Defense",
+    "common_name": "Caro-Kann",
+    "move_order": "1.e4 c6 2.d4 d5",
+    "variations": [
+      { "name": "Classical Variation", "moves": "1.e4 c6 2.d4 d5 3.Nc3 dxe4 4.Nxe4 Bf5", "brief_description": "Black develops the bishop outside the pawn chain — the key advantage over the French" },
+      { "name": "Advance Variation", "moves": "1.e4 c6 2.d4 d5 3.e5 Bf5", "brief_description": "Space-grabbing but Black gets active bishop placement" },
+      { "name": "Exchange Variation", "moves": "1.e4 c6 2.d4 d5 3.exd5 cxd5", "brief_description": "Symmetrical pawn structure; White usually tries to exploit the isolated d5 pawn" },
+      { "name": "Panov Attack", "moves": "1.e4 c6 2.d4 d5 3.exd5 cxd5 4.c4", "brief_description": "Aggressive approach creating an IQP position after the pawn exchanges" },
+      { "name": "Fantasy Variation", "moves": "1.e4 c6 2.d4 d5 3.f3", "brief_description": "Aggressive but unsound — White tries to intimidate" }
+    ],
+    "strategic_themes": ["good light-squared bishop", "solid pawn structure", "IQP positions", "queenside counterplay", "endgame advantage"],
+    "typical_white_plan": "White exploits the extra space in the Advance or tries to create an isolated queen pawn (IQP) in the Panov. The Classical requires White to find a way past Black's solid defensive setup.",
+    "typical_black_plan": "Unlike the French, Black gets an active bishop placement with ...Bf5 in the Classical. The plan is solid development, then ...e5 or ...c5 to challenge White's center. Caro-Kann players aim for a slightly worse but very solid position that's easy to defend.",
+    "key_pieces": ["light-squared bishop (Bf5)", "d5 pawn", "knight on d7"],
+    "common_mistakes_club_players": [
+      "Not understanding the ...Bf5 idea — playing the Caro but moving the bishop too late",
+      "Allowing White to create a strong IQP without knowing how to fight it",
+      "Playing ...Nf6 before ...Bf5 in the Classical, missing the optimal setup"
+    ],
+    "common_mistakes_intermediate": [
+      "Mishandling the Panov IQP positions — needs specific technique",
+      "Not knowing the critical ...Nd7-f6 maneuver timing"
+    ],
+    "critical_moves": [
+      { "move": "4...Bf5", "explanation": "The defining move of the Classical Caro-Kann — Black gets the bishop outside the pawn chain, which was impossible in the French." },
+      { "move": "3.e5 Bf5", "explanation": "In the Advance, Black immediately develops the bishop before the pawn chain closes." }
+    ],
+    "traps_and_tricks": [
+      { "name": "Tartakower Trap", "moves": "1.e4 c6 2.d4 d5 3.Nc3 dxe4 4.Nxe4 Bf5 5.Ng3 Bg6 6.h4 h6 7.Nf3 Nd7 8.h5 Bh7 9.Bd3 Bxd3 10.Qxd3 e6 11.Bf4 Ngf6 12.0-0-0 Be7 13.Ne4 Qa5", "explanation": "Complex tactical sequence that many White players miss in the Classical." }
+    ],
+    "model_games": [
+      { "player_white": "Magnus Carlsen", "player_black": "Fabiano Caruana", "year": 2018, "event": "World Championship", "why_study_it": "Anand was the Caro-Kann master — these games show optimal defensive technique" }
+    ],
+    "elo_suitability": { "min": 1000, "max": 2800, "notes": "Pablo's recommended defense against 1.e4 for most players — solid without giving up the bishop like the French." },
+    "pablo_opinion": "The Caro-Kann is my top recommendation for most Black players. It's solid, principled, and you get to develop your bishop properly — unlike the French where it's stuck behind your own pawns for 30 moves. Anand used it to win a World Championship game. That tells you everything.",
+    "recommended_study_order": ["Learn ...Bf5 idea and its value", "Study Classical Variation structure", "Learn Advance Variation plans", "Study Panov IQP positions", "Learn Karpov-style endgame technique"],
+    "weakness_signals": ["Struggles with passive positions", "Doesn't know how to activate the light-squared bishop", "Loses IQP endgames"]
+  },
+  {
+    "opening_id": "kings_indian_defense",
+    "eco_codes": ["E60", "E61", "E62", "E63", "E64", "E65", "E66", "E67", "E68", "E69", "E70", "E71", "E72", "E73", "E74", "E75", "E76", "E77", "E78", "E79", "E80", "E81", "E82", "E83", "E84", "E85", "E86", "E87", "E88", "E89", "E90", "E91", "E92", "E93", "E94", "E95", "E96", "E97", "E98", "E99"],
+    "name": "King's Indian Defense",
+    "common_name": "KID",
+    "move_order": "1.d4 Nf6 2.c4 g6 3.Nc3 Bg7 4.e4 d6 5.Nf3 0-0 6.Be2 e5",
+    "variations": [
+      { "name": "Classical Variation", "moves": "1.d4 Nf6 2.c4 g6 3.Nc3 Bg7 4.e4 d6 5.Nf3 0-0 6.Be2 e5 7.0-0 Nc6", "brief_description": "Main line; complex strategic battle" },
+      { "name": "Yugoslav Variation (Gligoric)", "moves": "1.d4 Nf6 2.c4 g6 3.Nc3 Bg7 4.e4 d6 5.Nf3 0-0 6.Be2 e5 7.d5", "brief_description": "White closes the center with d5; leads to plan-based play" },
+      { "name": "Sämisch Variation", "moves": "1.d4 Nf6 2.c4 g6 3.Nc3 Bg7 4.e4 d6 5.f3", "brief_description": "White builds a massive center and prepares Be3, Qd2, castles queenside" },
+      { "name": "Averbakh Variation", "moves": "1.d4 Nf6 2.c4 g6 3.Nc3 Bg7 4.e4 d6 5.Be2 0-0 6.Bg5", "brief_description": "White pins the knight with the bishop, preventing ...e5" },
+      { "name": "Mar del Plata Variation", "moves": "1.d4 Nf6 2.c4 g6 3.Nc3 Bg7 4.e4 d6 5.Nf3 0-0 6.Be2 e5 7.0-0 Nc6 8.d5 Ne7 9.Ne1 Nd7 10.f3 f5", "brief_description": "The most uncompromising KID line — both sides attack on opposite wings" }
+    ],
+    "strategic_themes": ["kingside attack with ...f5", "KID bishop on g7", "opposite-side pawn majorities", "d5 space vs e5 tension", "knight maneuver to f4 via e6"],
+    "typical_white_plan": "White occupies the center with d4+e4+c4, then advances the queenside with c5 or plays f3+Be3+Qd2+Bh6 to trade off the KID bishop. The queenside push c5 is the typical winning plan.",
+    "typical_black_plan": "Black launches a violent kingside attack with ...f5-f4 or ...Nf6-h5-f4. The KID bishop on g7 is the key piece. Black ignores White's queenside counterplay and bets on the attack arriving first. This requires nerve.",
+    "key_pieces": ["KID bishop on g7", "knight on f6 (going to h5 or e8)", "f-pawn", "e5 pawn"],
+    "common_mistakes_club_players": [
+      "Playing ...f5 without the knight properly repositioned — leads to weak e5 pawn",
+      "Allowing White to trade off the KID bishop with Bh6 without fighting back",
+      "Not knowing whether to push ...f5 or ...e5 to e4 — this IS the KID",
+      "Playing the KID but adopting a passive plan instead of the typical kingside attack"
+    ],
+    "common_mistakes_intermediate": [
+      "Mishandling the Sämisch — White's f3 changes the dynamic completely",
+      "Not knowing the Mar del Plata structure and its specific plans",
+      "Allowing White's queenside advance to go unopposed"
+    ],
+    "critical_moves": [
+      { "move": "6...e5", "explanation": "The defining KID move — Black immediately challenges White's center and sets up the typical kingside attack." },
+      { "move": "9...Nd7 10.f3 f5", "explanation": "The Mar del Plata — both sides attack, one of the most double-edged positions in chess." }
+    ],
+    "traps_and_tricks": [
+      { "name": "Four Pawns Attack Trap", "moves": "1.d4 Nf6 2.c4 g6 3.Nc3 Bg7 4.e4 d6 5.f4 0-0 6.Nf3 c5 7.d5 e6 8.dxe6 fxe6 9.Bd3 d5", "explanation": "If White grabs too many pawns, Black's central counterplay can be overwhelming." }
+    ],
+    "model_games": [
+      { "player_white": "Anatoly Karpov", "player_black": "Garry Kasparov", "year": 1985, "event": "World Championship Game 16", "why_study_it": "Kasparov's most famous KID win — perfect demonstration of the kingside attack" },
+      { "player_white": "Bobby Fischer", "player_black": "Various", "year": 1970, "event": "Various", "why_study_it": "Fischer played the KID throughout his career — his games are the best teaching material" }
+    ],
+    "elo_suitability": { "min": 1400, "max": 2900, "notes": "One of the most combative openings in chess. Requires willingness to play for a win as Black." },
+    "pablo_opinion": "The KID is for players with fighting spirit. You're going to castle kingside, push ...f5, and try to mate your opponent while they try to promote a pawn on the queenside. That's the deal. Either you're comfortable with that race or you're not. Kasparov played this for 30 years and won World Championships. If it's good enough for him, it's good enough for you.",
+    "recommended_study_order": ["Learn the ...f5 vs ...e4 decision", "Study the KID bishop's strategic value", "Learn Mar del Plata plans", "Study Sämisch defensive setup", "Deep-dive Classical KID endgames"],
+    "weakness_signals": ["Plays KID but adopts passive plans", "Doesn't know when to push ...f5", "Gets confused by the Sämisch"]
+  },
+  {
+    "opening_id": "nimzo_indian",
+    "eco_codes": ["E20", "E21", "E22", "E23", "E24", "E25", "E26", "E27", "E28", "E29", "E30", "E31", "E32", "E33", "E34", "E35", "E36", "E37", "E38", "E39", "E40", "E41", "E42", "E43", "E44", "E45", "E46", "E47", "E48", "E49", "E50", "E51", "E52", "E53", "E54", "E55", "E56", "E57", "E58", "E59"],
+    "name": "Nimzo-Indian Defense",
+    "common_name": "Nimzo",
+    "move_order": "1.d4 Nf6 2.c4 e6 3.Nc3 Bb4",
+    "variations": [
+      { "name": "Classical Variation (4.Qc2)", "moves": "1.d4 Nf6 2.c4 e6 3.Nc3 Bb4 4.Qc2", "brief_description": "White avoids doubled pawns; keeps the center flexible" },
+      { "name": "Rubinstein Variation (4.e3)", "moves": "1.d4 Nf6 2.c4 e6 3.Nc3 Bb4 4.e3", "brief_description": "Solid development; White accepts possible doubled pawns" },
+      { "name": "Sämisch Variation (4.a3)", "moves": "1.d4 Nf6 2.c4 e6 3.Nc3 Bb4 4.a3 Bxc3+ 5.bxc3", "brief_description": "White forces doubled pawns but gets the bishop pair" },
+      { "name": "Leningrad Variation (4.Bg5)", "moves": "1.d4 Nf6 2.c4 e6 3.Nc3 Bb4 4.Bg5", "brief_description": "Aggressive pin — White aims for e4 and strong center" }
+    ],
+    "strategic_themes": ["doubled c-pawns vs bishop pair", "d4 square control", "IQP positions", "dark square strategy", "e4 prevention"],
+    "typical_white_plan": "White's strategic goal depends on the variation. In the Classical (4.Qc2), White avoids doubled pawns and aims for a strong center with e4. After doubled pawns (4.a3 Bxc3+), White uses the bishop pair and mobile center for a long-term advantage.",
+    "typical_black_plan": "Black sacrifices the bishop pair to give White doubled c-pawns. The key idea is controlling the d4 square and blockading White's pawns. Black should target the doubled pawns with ...c5 and fight for the dark squares.",
+    "key_pieces": ["bishop on b4 (the Nimzo bishop)", "knight on f6", "e6 pawn", "d4 square"],
+    "common_mistakes_club_players": [
+      "Playing ...d5 without calculating the implications of the pin",
+      "Not understanding when to exchange on c3 (doubling White's pawns)",
+      "Ignoring White's bishop pair after the Sämisch variation"
+    ],
+    "common_mistakes_intermediate": [
+      "Mishandling the 4.Qc2 Classical — White often gets a slight edge if Black doesn't know the system",
+      "Not blocking the doubled c-pawns with ...c5 and ...Ba6"
+    ],
+    "critical_moves": [
+      { "move": "3...Bb4", "explanation": "The Nimzo move — pins the c3 knight, prevents White from building e4 freely, and can force doubled pawns." },
+      { "move": "4.a3", "explanation": "The Sämisch — forces the exchange and White gets the bishop pair at the cost of doubled pawns." }
+    ],
+    "traps_and_tricks": [
+      { "name": "Nimzo Pin Exploitation", "moves": "...Bxc3+ bxc3 then ...c5 targeting the doubled pawns", "explanation": "The long-term strategy of targeting c3+c4 as weak pawns is the 'trap' in Nimzo positions." }
+    ],
+    "model_games": [
+      { "player_white": "Mikhail Botvinnik", "player_black": "Aron Nimzowitsch", "year": 1936, "event": "Moscow", "why_study_it": "Historical context — shows the ideas behind the opening Nimzowitsch invented" }
+    ],
+    "elo_suitability": { "min": 1400, "max": 2900, "notes": "Top-tier defense used by every World Champion. Strategically rich and deeply studied." },
+    "pablo_opinion": "The Nimzo is elegant. You pin the knight, you create structural problems for White, and you win on dark squares. It's not flashy but it works at every level from 1400 to 2900. If you're facing 1.d4 and you want something principled, the Nimzo is it.",
+    "recommended_study_order": ["Understand ...Bb4 pin's strategic purpose", "Learn 4.Qc2 Classical response", "Study doubled c-pawn exploitation", "Learn IQP positions", "Study Rubinstein and Sämisch variations"],
+    "weakness_signals": ["Struggles against 1.d4 systematically", "Doesn't understand dark square control", "Passive play with bishop pair disadvantage"]
+  },
+  {
+    "opening_id": "queens_gambit_declined",
+    "eco_codes": ["D30", "D31", "D32", "D33", "D34", "D35", "D36", "D37", "D38", "D39", "D40", "D41", "D42", "D43", "D44", "D45", "D46", "D47", "D48", "D49", "D50", "D51", "D52", "D53", "D54", "D55", "D56", "D57", "D58", "D59", "D60", "D61", "D62", "D63", "D64", "D65", "D66", "D67", "D68", "D69"],
+    "name": "Queen's Gambit Declined",
+    "common_name": "QGD",
+    "move_order": "1.d4 d5 2.c4 e6 3.Nc3 Nf6 4.Bg5",
+    "variations": [
+      { "name": "Orthodox Defense", "moves": "1.d4 d5 2.c4 e6 3.Nc3 Nf6 4.Bg5 Be7 5.e3 0-0 6.Nf3 Nbd7", "brief_description": "Classical solid setup; the main battleground of classical chess" },
+      { "name": "Tartakower-Makogonov-Bondarevsky (TMB)", "moves": "1.d4 d5 2.c4 e6 3.Nc3 Nf6 4.Bg5 Be7 5.e3 0-0 6.Nf3 h6 7.Bh4 b6", "brief_description": "Dynamic counterplay with ...b6; Kasparov's favorite" },
+      { "name": "Cambridge Springs Defense", "moves": "1.d4 d5 2.c4 e6 3.Nc3 Nf6 4.Bg5 Nbd7 5.e3 c6 6.Nf3 Qa5", "brief_description": "Active queen play; trappy setup" },
+      { "name": "Lasker Defense", "moves": "1.d4 d5 2.c4 e6 3.Nc3 Nf6 4.Bg5 Be7 5.e3 0-0 6.Nf3 Ne4", "brief_description": "Simplifying with the knight exchange; leads to double rook endgames" }
+    ],
+    "strategic_themes": ["isolated queen pawn", "minority attack", "piece activity vs pawn structure", "queenside play", "c6-d5 pawn chain"],
+    "typical_white_plan": "White can go for a minority attack with b4-b5, exchanging b5 for c6 and leaving Black with a weak c6 pawn. Alternatively, White plays for a central break with e4 or exploits the IQP if it arises.",
+    "typical_black_plan": "Black's main counterplay involves freeing the position with ...c5 or ...e5. The ...b6 plan (TMB) is very active. Black wants to equalize piece activity and find counterplay before White's queenside play takes over.",
+    "key_pieces": ["bishop on c8 (the problem piece)", "knight on d7", "d5 pawn", "c-file activity"],
+    "common_mistakes_club_players": [
+      "Playing the QGD without knowing the c8 bishop problem",
+      "Not using the ...c5 or ...e5 freeing moves at the right time",
+      "Allowing White's minority attack without a response plan"
+    ],
+    "common_mistakes_intermediate": [
+      "Mishandling the IQP — knowing when to advance or blockade is critical",
+      "Missing the Cambridge Springs Qa5 trick"
+    ],
+    "critical_moves": [
+      { "move": "4.Bg5", "explanation": "White pins the knight and puts maximum pressure on d5, setting up the main QGD battleground." },
+      { "move": "7...b6", "explanation": "The TMB Defense — dynamic counterplay with the bishop on b7, targeting White's center." }
+    ],
+    "traps_and_tricks": [
+      { "name": "Cambridge Springs Fork", "moves": "...Qa5 with the knight on d7 and bishop on f5, forking White's pieces", "explanation": "The Cambridge Springs creates dual threats that can catch unprepared opponents." }
+    ],
+    "model_games": [
+      { "player_white": "Garry Kasparov", "player_black": "Anatoly Karpov", "year": 1986, "event": "World Championship", "why_study_it": "TMB Defense at its finest — Kasparov's dynamic use of the QGD" }
+    ],
+    "elo_suitability": { "min": 1200, "max": 2900, "notes": "Classical and universally applicable. The QGD has been played at every level and every era." },
+    "pablo_opinion": "The QGD is the most classical defense in chess history. It's been played in World Championship matches for over a century. The challenge is finding active play — passive QGD players just get squeezed. Learn the TMB, learn ...c5, and don't be a pushover.",
+    "recommended_study_order": ["Understand the c8 bishop problem", "Learn the TMB Defense (...b6)", "Study minority attack defense", "Learn IQP positions", "Study Cambridge Springs traps"],
+    "weakness_signals": ["Passive play in classical positions", "Doesn't know freeing move timing", "Gets systematically outplayed in minority attack positions"]
+  },
+  {
+    "opening_id": "queens_gambit_accepted",
+    "eco_codes": ["D20", "D21", "D22", "D23", "D24", "D25", "D26", "D27", "D28", "D29"],
+    "name": "Queen's Gambit Accepted",
+    "common_name": "QGA",
+    "move_order": "1.d4 d5 2.c4 dxc4",
+    "variations": [
+      { "name": "Classical Variation", "moves": "1.d4 d5 2.c4 dxc4 3.Nf3 Nf6 4.e3 e6 5.Bxc4 c5", "brief_description": "Black accepts and immediately counterattacks with ...c5" },
+      { "name": "Accelerated Variation", "moves": "1.d4 d5 2.c4 dxc4 3.e4", "brief_description": "White immediately grabs the center" },
+      { "name": "Saduleto Variation", "moves": "1.d4 d5 2.c4 dxc4 3.Nf3 a6", "brief_description": "Prophylactic approach preventing Bb5" }
+    ],
+    "strategic_themes": ["free development with pawn sacrifice", "IQP compensation", "open d-file", "central play"],
+    "typical_white_plan": "White sacrifices the pawn for rapid development and a strong center with e4 or e3+d4. White aims to use the bishop pair and extra central space to overwhelm Black's position.",
+    "typical_black_plan": "Black accepts the pawn and uses the tempo gained to create active piece play. The key is maintaining the extra pawn while developing rapidly. Black often returns the pawn at the right moment to equalize.",
+    "key_pieces": ["bishop on c4 (for White)", "c4 pawn", "d4 pawn", "active pieces"],
+    "common_mistakes_club_players": [
+      "Trying to hold the pawn at all costs — often leads to passivity",
+      "Not knowing the ...c5 counterattack idea",
+      "Getting behind in development after accepting the gambit"
+    ],
+    "common_mistakes_intermediate": [
+      "Mishandling the resulting IQP positions — tempo-sensitive"
+    ],
+    "critical_moves": [
+      { "move": "5...c5", "explanation": "The main idea — Black attacks White's center immediately after accepting the pawn." }
+    ],
+    "traps_and_tricks": [],
+    "model_games": [
+      { "player_white": "Magnus Carlsen", "player_black": "Various", "year": 2014, "event": "Various", "why_study_it": "Modern QGA treatment showing active Black counterplay" }
+    ],
+    "elo_suitability": { "min": 1200, "max": 2800, "notes": "Solid option — the ...c5 counterattack makes it dynamic enough for active players." },
+    "pablo_opinion": "Taking the gambit is fine — just don't try to hold the pawn. Use the tempo, develop, and give the pawn back when it's right. The problem is club players try to keep the extra pawn and end up in passive, cramped positions. That's the real mistake in the QGA.",
+    "recommended_study_order": ["Understand the pawn sacrifice philosophy", "Learn ...c5 counterattack", "Study IQP compensation", "Learn when to return the pawn"],
+    "weakness_signals": ["Tries to keep extra pawns at the cost of activity", "Doesn't understand gambit compensation"]
+  },
+  {
+    "opening_id": "london_system",
+    "eco_codes": ["D02", "D03", "D04", "D05"],
+    "name": "London System",
+    "common_name": "London",
+    "move_order": "1.d4 d5 2.Nf3 Nf6 3.Bf4 e6 4.e3 Bd6",
+    "variations": [
+      { "name": "London vs KID setup", "moves": "1.d4 Nf6 2.Nf3 g6 3.Bf4 Bg7 4.e3 0-0 5.Be2 d6", "brief_description": "London against fianchetto setups — solid but gives Black easy equality" },
+      { "name": "Jobava London", "moves": "1.d4 d5 2.Nc3 Nf6 3.Bf4", "brief_description": "Aggressive London with Nc3 instead of Nf3" },
+      { "name": "Barry Attack", "moves": "1.d4 Nf6 2.Nf3 g6 3.Nc3 d5 4.Bf4 Bg7 5.e3", "brief_description": "London variant targeting the KID player" }
+    ],
+    "strategic_themes": ["solid pawn structure", "bishop on f4", "queen on d3 attack setup", "h3+g4 kingside expansion"],
+    "typical_white_plan": "White builds a solid setup with d4, Nf3, Bf4, e3, Bd3, and 0-0. Then the plan is Qe2 or Qd3 followed by Ne5 and possibly a kingside pawn advance. Very low-risk, methodical approach.",
+    "typical_black_plan": "Black should challenge the London setup actively. The best response involves ...c5 to undermine d4, or ...Ne4 to trade pieces and equalize. Passive play against the London leads to a slow strategic defeat.",
+    "key_pieces": ["bishop on f4", "pawn on d4", "knight on e5"],
+    "common_mistakes_club_players": [
+      "Playing the London without a concrete plan after the basic setup",
+      "Allowing Black's ...c5 counterplay without a response",
+      "Not using the queen on d3 or e2 aggressively"
+    ],
+    "common_mistakes_intermediate": [
+      "Playing the London but not knowing the Jobava variant or Barry Attack nuances"
+    ],
+    "critical_moves": [
+      { "move": "3.Bf4", "explanation": "The London System setup — the bishop goes to f4 before being blocked by pawns." }
+    ],
+    "traps_and_tricks": [
+      { "name": "London Trap vs Bxd6", "moves": "...Bxd6 Qxd6 then Nbd2-Ne5", "explanation": "White sometimes sets up a tempo-gaining sequence with the knight to e5." }
+    ],
+    "model_games": [
+      { "player_white": "Magnus Carlsen", "player_black": "Various", "year": 2020, "event": "Online Championships", "why_study_it": "Carlsen used the London in rapid play — shows how a top GM employs it" }
+    ],
+    "elo_suitability": { "min": 600, "max": 2000, "notes": "Excellent for beginners. Becomes increasingly equal at higher levels — experts recommend learning more dynamic openings above 1800." },
+    "pablo_opinion": "Look, the London works. It's solid, it's low-theory, and you'll win plenty of games with it under 1800. But I need to be honest with you: at some point you're going to face someone who knows how to meet it and you'll have no attacking ideas whatsoever. Use it as a crutch if you need to, but don't build your whole chess identity around it.",
+    "recommended_study_order": ["Learn basic London setup", "Study Ne5 attacking plans", "Learn ...c5 counter response", "Study Jobava London", "Learn transition to endgames"],
+    "weakness_signals": ["Wants safe, theory-light games", "Prefers methodical play", "Struggles with complex tactical positions"]
+  },
+  {
+    "opening_id": "grunfeld_defense",
+    "eco_codes": ["D70", "D71", "D72", "D73", "D74", "D75", "D76", "D77", "D78", "D79", "D80", "D81", "D82", "D83", "D84", "D85", "D86", "D87", "D88", "D89", "D90", "D91", "D92", "D93", "D94", "D95", "D96", "D97", "D98", "D99"],
+    "name": "Grünfeld Defense",
+    "common_name": "Grünfeld",
+    "move_order": "1.d4 Nf6 2.c4 g6 3.Nc3 d5",
+    "variations": [
+      { "name": "Exchange Variation", "moves": "1.d4 Nf6 2.c4 g6 3.Nc3 d5 4.cxd5 Nxd5 5.e4 Nxc3 6.bxc3 Bg7 7.Bc4 c5", "brief_description": "Main theoretical battleground; White builds a massive center, Black undermines it" },
+      { "name": "Russian System", "moves": "1.d4 Nf6 2.c4 g6 3.Nc3 d5 4.Nf3 Bg7 5.Qb3", "brief_description": "Aggressive queen sortie pressuring d5 and b7" },
+      { "name": "Anti-Grünfeld (4.Bg5)", "moves": "1.d4 Nf6 2.c4 g6 3.Nc3 d5 4.Bg5", "brief_description": "White tries to avoid main lines with early bishop development" }
+    ],
+    "strategic_themes": ["big center vs piece activity", "d4 pawn as target", "Grünfeld bishop on g7", "queenside counterplay", "long-term pressure against c3-pawn"],
+    "typical_white_plan": "White builds an enormous center (d4+e4+c4 after the exchange) and tries to advance it. The bishop on c4 targets f7. White believes the center will eventually prevail over Black's piece activity.",
+    "typical_black_plan": "Black lets White build the center and then systematically demolishes it. The Grünfeld bishop on g7 is the key — it xrays through the center. Combined with ...c5, Black launches a counterattack against White's overextended pawns.",
+    "key_pieces": ["Grünfeld bishop on g7", "d4 pawn (White's target)", "knight on d5 before exchange", "c5 pawn break"],
+    "common_mistakes_club_players": [
+      "Playing the Grünfeld without understanding the center-demolition plan",
+      "Not knowing the critical ...c5 counterattack timing",
+      "Playing passively after the Exchange Variation — the Grünfeld requires active play"
+    ],
+    "common_mistakes_intermediate": [
+      "Mishandling the Russian System (5.Qb3)",
+      "Allowing White's center to go unchallenged after the exchange"
+    ],
+    "critical_moves": [
+      { "move": "3...d5", "explanation": "The Grünfeld move — Black immediately challenges White's center while fianchettoing the bishop." },
+      { "move": "7...c5", "explanation": "In the Exchange Variation, this is Black's key counterattack, targeting the d4 pawn from behind." }
+    ],
+    "traps_and_tricks": [],
+    "model_games": [
+      { "player_white": "Garry Kasparov", "player_black": "Anatoly Karpov", "year": 1986, "event": "World Championship", "why_study_it": "The Grünfeld was Kasparov's main weapon in his World Championship matches" }
+    ],
+    "elo_suitability": { "min": 1600, "max": 2900, "notes": "Very theoretical. Requires deep preparation but is extremely effective when learned properly." },
+    "pablo_opinion": "The Grünfeld is high-wire chess. You let your opponent build the biggest center in the world and then you try to tear it apart with two pieces. It's either brilliant or catastrophic. Kasparov swore by it. Bobby Fischer hated facing it. That tells you something.",
+    "recommended_study_order": ["Understand center-demolition philosophy", "Study Exchange Variation structure", "Learn ...c5 timing", "Study Russian System response", "Deep-dive endgame theory"],
+    "weakness_signals": ["Gets steamrolled by big pawn centers", "Doesn't understand the d4 attack philosophy", "Passive play in dynamic positions"]
+  },
+  {
+    "opening_id": "benoni_defense",
+    "eco_codes": ["A56", "A57", "A58", "A59", "A60", "A61", "A62", "A63", "A64", "A65", "A66", "A67", "A68", "A69", "A70", "A71", "A72", "A73", "A74", "A75", "A76", "A77", "A78", "A79"],
+    "name": "Modern Benoni",
+    "common_name": "Benoni",
+    "move_order": "1.d4 Nf6 2.c4 c5 3.d5 e6 4.Nc3 exd5 5.cxd5 d6",
+    "variations": [
+      { "name": "Classical Benoni", "moves": "1.d4 Nf6 2.c4 c5 3.d5 e6 4.Nc3 exd5 5.cxd5 d6 6.e4 g6 7.Nf3 Bg7 8.Be2 0-0 9.0-0", "brief_description": "Main line; Black has kingside play with ...Nbd7-Ne5 or ...Re8" },
+      { "name": "Taimanov Attack", "moves": "1.d4 Nf6 2.c4 c5 3.d5 e6 4.Nc3 exd5 5.cxd5 d6 6.e4 g6 7.f4", "brief_description": "Aggressive four-pawn center; White attacks immediately" }
+    ],
+    "strategic_themes": ["queenside counterplay", "e4 central pressure", "...Nbd7-Ne5 maneuver", "c-pawn break (...b5)", "passed d-pawn for White"],
+    "typical_white_plan": "White has a space advantage on the queenside and aims to advance the d-pawn or launch a kingside attack. The Four-Pawn Attack is the most aggressive option. White wants to convert the space advantage into a winning endgame.",
+    "typical_black_plan": "Black's counterplay comes from ...Nbd7-Ne5 (knight to e5 outpost), ...b5 queenside counterplay, and kingside play. Black bets on fast play overcoming White's spatial advantage.",
+    "key_pieces": ["knight on e5", "Benoni bishop on g7", "d6 pawn vs d5 pawn", "b-pawn"],
+    "common_mistakes_club_players": [
+      "Playing the Benoni without knowing the ...Ne5 maneuver",
+      "Allowing White's queenside advance without creating counterplay",
+      "Getting the ...b5 break timing wrong"
+    ],
+    "common_mistakes_intermediate": [
+      "Mishandling the Taimanov Four-Pawn Attack",
+      "Not knowing the critical ...Re8 ideas"
+    ],
+    "critical_moves": [
+      { "move": "9...Re8", "explanation": "Supporting the ...e5 advance in the Classical Benoni." },
+      { "move": "7.f4", "explanation": "The Taimanov Attack — immediately aggressive with the four-pawn center." }
+    ],
+    "traps_and_tricks": [],
+    "model_games": [
+      { "player_white": "Various", "player_black": "Mikhail Tal", "year": 1960, "event": "Various", "why_study_it": "Tal was the great Benoni player — his games show maximum Black aggression" }
+    ],
+    "elo_suitability": { "min": 1400, "max": 2700, "notes": "Imbalanced and fighting. Good for players who want unbalanced positions as Black." },
+    "pablo_opinion": "The Benoni is for fighters. You create a pawn imbalance on move 3 and fight for your life from move 1. It's not safe — it's not supposed to be. If you want to win against higher-rated players, the Benoni creates the kind of chaos that can do it.",
+    "recommended_study_order": ["Understand pawn structure imbalance", "Learn ...Ne5 maneuver", "Study ...b5 timing", "Learn Four-Pawn Attack defense", "Study model games"],
+    "weakness_signals": ["Wants aggressive Black openings", "Gets passive in closed positions", "Willing to gamble for winning chances"]
+  },
+  {
+    "opening_id": "dutch_defense",
+    "eco_codes": ["A80", "A81", "A82", "A83", "A84", "A85", "A86", "A87", "A88", "A89", "A90", "A91", "A92", "A93", "A94", "A95", "A96", "A97", "A98", "A99"],
+    "name": "Dutch Defense",
+    "common_name": "Dutch",
+    "move_order": "1.d4 f5",
+    "variations": [
+      { "name": "Stonewall Dutch", "moves": "1.d4 f5 2.c4 Nf6 3.Nc3 e6 4.Nf3 d5 5.e3 c6", "brief_description": "Rigid pawn structure; Black builds a fortress and attacks the kingside" },
+      { "name": "Leningrad Dutch", "moves": "1.d4 f5 2.c4 Nf6 3.Nc3 g6 4.Nf3 Bg7", "brief_description": "Dynamic fianchetto setup; more active than the Stonewall" },
+      { "name": "Classical Dutch", "moves": "1.d4 f5 2.c4 Nf6 3.Nc3 e6 4.Nf3 Be7 5.g3 0-0 6.Bg2", "brief_description": "Flexible setup; can transpose to Stonewall or other lines" }
+    ],
+    "strategic_themes": ["kingside attack with ...f5", "e4 prevention", "Stonewall fortress", "long diagonal for Bg7 in Leningrad", "weak e5 square"],
+    "typical_white_plan": "White targets the weak e5 square created by ...f5. The knight on e5 is a permanent thorn. In the Leningrad, White can attack the kingside after g4 or play on the queenside.",
+    "typical_black_plan": "Black immediately claims the kingside with ...f5 and aims for a kingside attack. In the Stonewall, the plan is ...Ne4, ...Nbd7-f6, and a direct attack. In the Leningrad, the fianchettoed bishop supports the attack.",
+    "key_pieces": ["f5 pawn", "knight on e4 (Stonewall)", "bishop on g7 (Leningrad)", "e5 square (White's target)"],
+    "common_mistakes_club_players": [
+      "Playing the Dutch without a clear attacking plan",
+      "Allowing the e5 square to be permanently occupied by White's knight",
+      "Not developing the c8 bishop before it's blocked"
+    ],
+    "common_mistakes_intermediate": [
+      "Mishandling the strategic transition when White prevents the kingside attack"
+    ],
+    "critical_moves": [
+      { "move": "1...f5", "explanation": "The Dutch move — immediately claims kingside space but weakens e5." }
+    ],
+    "traps_and_tricks": [
+      { "name": "Staunton Gambit", "moves": "1.d4 f5 2.e4 fxe4 3.Nc3", "explanation": "White sacrifices a pawn for rapid development against the Dutch — Black must know the response." }
+    ],
+    "model_games": [
+      { "player_white": "Magnus Carlsen", "player_black": "Hikaru Nakamura", "year": 2010, "event": "Various", "why_study_it": "Nakamura plays the Dutch regularly — good models for both sides" }
+    ],
+    "elo_suitability": { "min": 1200, "max": 2700, "notes": "Risky but effective as a surprise weapon. The Leningrad is more popular at GM level." },
+    "pablo_opinion": "The Dutch is a gamble from move 1. You're weakening e5 before you've done anything else. If you have a plan and you commit to it, it can be devastating. Botvinnik won multiple World Championship games with the Dutch. But half the Dutch players I see have no attacking plan — they just pushed f5 and hoped for the best.",
+    "recommended_study_order": ["Choose Stonewall or Leningrad", "Learn e5 weakness management", "Study ...Ne4 Stonewall plan", "Learn Leningrad attacking patterns", "Study Staunton Gambit response"],
+    "weakness_signals": ["Wants aggressive 1.d4 response", "Comfortable with pawn weaknesses", "Attacking style player"]
+  },
+  {
+    "opening_id": "english_opening",
+    "eco_codes": ["A10", "A11", "A12", "A13", "A14", "A15", "A16", "A17", "A18", "A19", "A20", "A21", "A22", "A23", "A24", "A25", "A26", "A27", "A28", "A29", "A30", "A31", "A32", "A33", "A34", "A35", "A36", "A37", "A38", "A39"],
+    "name": "English Opening",
+    "common_name": "English",
+    "move_order": "1.c4",
+    "variations": [
+      { "name": "Reversed Sicilian", "moves": "1.c4 e5 2.Nc3 Nf6 3.g3 d5 4.cxd5 Nxd5 5.Bg2", "brief_description": "Sicilian structure with colors reversed — White has an extra tempo" },
+      { "name": "Symmetrical English", "moves": "1.c4 c5 2.Nf3 Nf6 3.Nc3 d5 4.cxd5 Nxd5 5.e3", "brief_description": "Symmetrical pawn structure; strategic battle" },
+      { "name": "English vs KID", "moves": "1.c4 Nf6 2.Nc3 g6 3.g3 Bg7 4.Bg2 0-0 5.Nf3 d6 6.0-0 e5", "brief_description": "KID-type structure with the English setup" },
+      { "name": "Anglo-Indian", "moves": "1.c4 Nf6 2.Nc3 e6 3.Nf3 d5 4.d4", "brief_description": "Transposes to QGD or Indian defenses" }
+    ],
+    "strategic_themes": ["queenside control", "central pressure without d4", "reversed Sicilian extra tempo", "fianchetto bishop on g2", "flexible setup"],
+    "typical_white_plan": "White controls the d5 square with c4, prepares d4 if possible, or uses the Reversed Sicilian structure to create queenside pressure. The fianchettoed bishop on g2 is a key piece.",
+    "typical_black_plan": "Black can fight with ...e5 (Reversed Sicilian), ...d5 (symmetrical), or ...Nf6 leading to Indian setups. The English is flexible enough that Black must decide on a structure early.",
+    "key_pieces": ["bishop on g2", "c4 pawn", "knight on c3", "flexible center"],
+    "common_mistakes_club_players": [
+      "Not having a plan after 1.c4 — just 'developing' without direction",
+      "Allowing Black to establish an ideal center with ...e5+...d5",
+      "Not knowing when to push d4"
+    ],
+    "common_mistakes_intermediate": [
+      "Missing transposition opportunities to favorable structures",
+      "Not knowing the Reversed Sicilian theory"
+    ],
+    "critical_moves": [
+      { "move": "1.c4", "explanation": "Controls d5 without immediately committing to d4; keeps options open for many different setups." }
+    ],
+    "traps_and_tricks": [],
+    "model_games": [
+      { "player_white": "Anatoly Karpov", "player_black": "Various", "year": 1980, "event": "Various", "why_study_it": "Karpov was the master of the English — his patient maneuvering is instructive" }
+    ],
+    "elo_suitability": { "min": 1400, "max": 2900, "notes": "Very flexible. Used by many top GMs as a way to get rich positions without heavy theory." },
+    "pablo_opinion": "The English is what you play when you're tired of memorizing Ruy Lopez theory but still want to play seriously. It's flexible, principled, and forces your opponent to make decisions. Karpov built a World Championship career on it. The risk is you end up with a somewhat passive game if you're not careful.",
+    "recommended_study_order": ["Understand c4 vs d4 strategic difference", "Learn Reversed Sicilian structure", "Study Symmetrical English", "Learn key transpositions", "Study Karpov's positional technique"],
+    "weakness_signals": ["Wants flexible opening without heavy theory", "Positional player", "Dislikes tactical complexity"]
+  },
+  {
+    "opening_id": "reti_opening",
+    "eco_codes": ["A04", "A05", "A06", "A07", "A08", "A09"],
+    "name": "Réti Opening",
+    "common_name": "Réti",
+    "move_order": "1.Nf3 d5 2.c4",
+    "variations": [
+      { "name": "King's Indian Attack", "moves": "1.Nf3 d5 2.g3 Nf6 3.Bg2 e6 4.0-0 Be7 5.d3 0-0 6.Nbd2", "brief_description": "KIA setup — fianchetto with d3, aiming for e4 break" },
+      { "name": "Réti vs QGD", "moves": "1.Nf3 d5 2.c4 c6 3.g3 Nf6 4.Bg2 Bf5", "brief_description": "Réti against classical d5 setups" }
+    ],
+    "strategic_themes": ["hypermodern center control", "fianchetto pressure", "e4 break preparation", "flexible setup"],
+    "typical_white_plan": "White uses hypermodern principles — instead of occupying the center with pawns, White influences it with pieces and later challenges it with c4 or e4. The KIA setup aims for the e4 break as a lever.",
+    "typical_black_plan": "Black should immediately claim the center with ...d5+...c5 or a solid setup. The Réti's flexibility means Black needs to choose a structure early.",
+    "key_pieces": ["bishop on g2", "knight on f3", "c4 pawn"],
+    "common_mistakes_club_players": [
+      "Not claiming the center when White plays hypermodern",
+      "Getting lured into a passive setup"
+    ],
+    "common_mistakes_intermediate": [
+      "Misunderstanding when to play d4 in the KIA"
+    ],
+    "critical_moves": [
+      { "move": "2.c4", "explanation": "The Réti — immediately challenging d5 with the pawn." }
+    ],
+    "traps_and_tricks": [],
+    "model_games": [
+      { "player_white": "Richard Réti", "player_black": "Jose Raul Capablanca", "year": 1924, "event": "New York", "why_study_it": "Réti's famous game against the world champion — hypermodern theory in practice" }
+    ],
+    "elo_suitability": { "min": 1400, "max": 2800, "notes": "Good positional weapon. KIA is especially effective at club level where opponents don't know how to handle the e4 break." },
+    "pablo_opinion": "The Réti is the chess equivalent of a strategist who never shows their hand. You're not committing to the center, you're influencing it from afar. It's sophisticated and effective, but requires understanding WHY the setup works.",
+    "recommended_study_order": ["Understand hypermodern principles", "Learn KIA e4 break timing", "Study Réti vs common defenses", "Learn transpositions"],
+    "weakness_signals": ["Wants positional games", "Likes flexible opening choices", "Uncomfortable with early sharp tactical battles"]
+  },
+  {
+    "opening_id": "queens_indian",
+    "eco_codes": ["E12", "E13", "E14", "E15", "E16", "E17", "E18", "E19"],
+    "name": "Queen's Indian Defense",
+    "common_name": "Queen's Indian",
+    "move_order": "1.d4 Nf6 2.c4 e6 3.Nf3 b6",
+    "variations": [
+      { "name": "Classical Variation", "moves": "1.d4 Nf6 2.c4 e6 3.Nf3 b6 4.g3 Ba6", "brief_description": "Black immediately attacks c4 with the bishop" },
+      { "name": "Modern Variation", "moves": "1.d4 Nf6 2.c4 e6 3.Nf3 b6 4.e3 Bb7 5.Bd3 Be7", "brief_description": "Solid classical setup" },
+      { "name": "Petrosian System", "moves": "1.d4 Nf6 2.c4 e6 3.Nf3 b6 4.a3", "brief_description": "White stops ...Bb4 and keeps the c4 pawn" }
+    ],
+    "strategic_themes": ["queenside fianchetto", "e4 prevention", "long diagonal pressure (Bb7)", "central counterplay"],
+    "typical_white_plan": "White tries to establish a strong center with e4 after Nf3 blocks the typical ...Bb4 pin. The plan involves Nf3, e3, Bd3, 0-0, and then expanding centrally.",
+    "typical_black_plan": "Black's Bb7 controls e4 and exerts long diagonal pressure. Combined with ...d5 or ...c5 counter-attacks, Black fights for central equality. The b6+Bb7 setup is the classic Queen's Indian plan.",
+    "key_pieces": ["bishop on b7", "knight on f6", "e6 pawn", "long diagonal"],
+    "common_mistakes_club_players": [
+      "Developing the bishop to b7 without a plan to use the long diagonal",
+      "Not knowing the ...d5 or ...c5 central counterattacks",
+      "Playing too passively — the QID should be dynamic"
+    ],
+    "common_mistakes_intermediate": [
+      "Mishandling Petrosian's 4.a3 — need precise response"
+    ],
+    "critical_moves": [
+      { "move": "3...b6", "explanation": "The Queen's Indian move — preparing to fianchetto the bishop to b7." }
+    ],
+    "traps_and_tricks": [],
+    "model_games": [
+      { "player_white": "Bobby Fischer", "player_black": "Tigran Petrosian", "year": 1971, "event": "Candidates Match", "why_study_it": "Fischer's loss to Petrosian in QID — instructive for Black's setup" }
+    ],
+    "elo_suitability": { "min": 1400, "max": 2800, "notes": "Reliable and principled. Often used as an alternative to the Nimzo-Indian." },
+    "pablo_opinion": "The Queen's Indian is quiet chess. You fianchetto, you pressure e4, you fight for central control without taking big risks. It's not flashy but it's deeply principled. Works well as a second opening alongside the Nimzo-Indian.",
+    "recommended_study_order": ["Understand Bb7 pressure on e4", "Learn ...d5 and ...c5 breaks", "Study Petrosian System (4.a3) response", "Learn Classical Variation (4.g3 Ba6)"],
+    "weakness_signals": ["Wants solid 1.d4 response", "Positional player", "Doesn't want sharp Nimzo complications"]
+  },
+  {
+    "opening_id": "scandinavian_defense",
+    "eco_codes": ["B01"],
+    "name": "Scandinavian Defense",
+    "common_name": "Scandinavian",
+    "move_order": "1.e4 d5 2.exd5 Qxd5",
+    "variations": [
+      { "name": "Main Line (3.Nc3 Qa5)", "moves": "1.e4 d5 2.exd5 Qxd5 3.Nc3 Qa5", "brief_description": "The principled retreat — queen goes to a5 where it's safer" },
+      { "name": "Modern (3.Nc3 Qd6)", "moves": "1.e4 d5 2.exd5 Qxd5 3.Nc3 Qd6", "brief_description": "Queen retreats to d6; avoids the typical Nc3 attack" },
+      { "name": "Icelandic Gambit", "moves": "1.e4 d5 2.exd5 Nf6 3.c4 e6", "brief_description": "Black sacrifices a pawn for rapid development and attack" }
+    ],
+    "strategic_themes": ["queen activity vs tempo loss", "central counterplay", "d6 setup", "rapid development"],
+    "typical_white_plan": "White develops rapidly with Nc3, Nf3, and Bc4 or d4, aiming to exploit the tempo Black spent moving the queen. The idea is to build a large center before Black can neutralize it.",
+    "typical_black_plan": "Despite the tempo loss, Black gets an active position. The queen on a5 pressures White's queenside. Plans include ...c6+...d5 pawn structure or ...Bg4 pin. Black needs to develop rapidly to compensate for the queen move.",
+    "key_pieces": ["queen on a5", "d5 pawn potential", "c-pawn"],
+    "common_mistakes_club_players": [
+      "Moving the queen to a6 (terrible) or h5 (also bad) after Nc3",
+      "Not knowing the ...c6-d5 central plan",
+      "Getting the queen trapped by White's pieces"
+    ],
+    "common_mistakes_intermediate": [
+      "Mishandling the tempo deficit in the middlegame"
+    ],
+    "critical_moves": [
+      { "move": "3...Qa5", "explanation": "The main line retreat — queen goes to a5 where it's active and pressures White's queenside." }
+    ],
+    "traps_and_tricks": [
+      { "name": "Fool's Mate Variation", "moves": "3.Nc3 Qd8 4.d4 Nf6 5.Bc4 Bg4 6.f3 Bf5 7.g4 Bg6 8.h4 h5 9.gxh5 Rxh5", "explanation": "If Black retreats the queen to d8, White often gets a good attack — shows why Qa5 is better." }
+    ],
+    "model_games": [
+      { "player_white": "Various", "player_black": "Bent Larsen", "year": 1970, "event": "Various", "why_study_it": "Larsen was the Scandinavian champion — his games show how to handle the position practically" }
+    ],
+    "elo_suitability": { "min": 800, "max": 2000, "notes": "Good surprise weapon. Becomes less effective at higher levels where White knows the development advantage." },
+    "pablo_opinion": "The Scandinavian is a confidence play. You come out early with the queen, White thinks 'oh great, I'll win this queen,' and then you play ...Qa5 and suddenly there's a chess game happening. It's unpopular at club level because people think it looks bad. That's exactly why it works.",
+    "recommended_study_order": ["Learn Qa5 setup", "Study ...c6+...d5 plan", "Learn tempo compensation ideas", "Study Icelandic Gambit as spice"],
+    "weakness_signals": ["Wants surprise weapons", "Comfortable with unorthodox positions", "Confident in their own ideas vs theory"]
+  },
+  {
+    "opening_id": "alekhine_defense",
+    "eco_codes": ["B02", "B03", "B04", "B05"],
+    "name": "Alekhine's Defense",
+    "common_name": "Alekhine",
+    "move_order": "1.e4 Nf6",
+    "variations": [
+      { "name": "Four Pawns Attack", "moves": "1.e4 Nf6 2.e5 Nd5 3.d4 d6 4.c4 Nb6 5.f4", "brief_description": "White builds a massive center — overextended or crushing" },
+      { "name": "Modern Variation (4.Nf3)", "moves": "1.e4 Nf6 2.e5 Nd5 3.d4 d6 4.Nf3 dxe5 5.Nxe5", "brief_description": "Main theoretical line — solid and studied" },
+      { "name": "Exchange Variation", "moves": "1.e4 Nf6 2.e5 Nd5 3.d4 d6 4.c4 Nb6 5.exd6", "brief_description": "White exchanges the center pawn; simpler structures" }
+    ],
+    "strategic_themes": ["hypermodern provocation", "center demolition", "knight retreating and returning", "luring pawns to attack"],
+    "typical_white_plan": "White advances the e-pawn to e5, chasing the Black knight. In the Four Pawns Attack, White tries to maintain the massive center. In other lines, White converts the space advantage into attacking chances.",
+    "typical_black_plan": "Black provokes White's center and then attacks it. The knight goes to d5, then b4 or b6 depending on the variation. Black waits for White to overextend, then strikes back with ...d6 or ...c5.",
+    "key_pieces": ["knight on d5 (the Alekhine knight)", "e5 pawn (White's target)", "c5 break"],
+    "common_mistakes_club_players": [
+      "Not knowing where the knight goes after the e5 push",
+      "Playing the Alekhine passively — needs active counterplay",
+      "Allowing White's center to stand unchallenged"
+    ],
+    "common_mistakes_intermediate": [
+      "Mishandling the Four Pawns Attack — very specific knowledge required"
+    ],
+    "critical_moves": [
+      { "move": "1...Nf6", "explanation": "The Alekhine move — immediately attacking e4 and inviting White to over-extend." }
+    ],
+    "traps_and_tricks": [],
+    "model_games": [
+      { "player_white": "Various", "player_black": "Alexander Alekhine", "year": 1921, "event": "Budapest", "why_study_it": "Alekhine invented this defense — his games show the philosophy behind it" }
+    ],
+    "elo_suitability": { "min": 1200, "max": 2500, "notes": "Solid surprise weapon. The hypermodern philosophy is educational regardless of level." },
+    "pablo_opinion": "The Alekhine is pure chess philosophy in action: invite your opponent to build the biggest center possible, then tear it apart. It's a psychological weapon — White players love having a big center and then suddenly realize it's a liability. Fischer played this in the 1971 Candidates matches.",
+    "recommended_study_order": ["Understand hypermodern center-attack philosophy", "Learn knight maneuvers", "Study Four Pawns Attack response", "Learn Modern Variation theory"],
+    "weakness_signals": ["Wants to play against large pawn centers", "Understands hypermodern principles", "Enjoys provoking opponents"]
+  },
+  {
+    "opening_id": "pirc_defense",
+    "eco_codes": ["B07", "B08", "B09"],
+    "name": "Pirc Defense",
+    "common_name": "Pirc",
+    "move_order": "1.e4 d6 2.d4 Nf6 3.Nc3 g6",
+    "variations": [
+      { "name": "Austrian Attack", "moves": "1.e4 d6 2.d4 Nf6 3.Nc3 g6 4.f4", "brief_description": "Aggressive pawn storm — very dangerous against unprepared opponents" },
+      { "name": "Classical Variation", "moves": "1.e4 d6 2.d4 Nf6 3.Nc3 g6 4.Nf3 Bg7 5.Be2", "brief_description": "Solid development — aiming for typical KID-like positions" }
+    ],
+    "strategic_themes": ["flexible hypermodern setup", "Pirc bishop on g7", "...e5 or ...c5 counterplay", "Austrian Attack pressure"],
+    "typical_white_plan": "In the Austrian Attack, White builds f4-f5 for a kingside pawn storm. In Classical lines, White builds a solid center and tries to exploit Black's slightly passive setup.",
+    "typical_black_plan": "Black fianchettoes the bishop and waits before striking with ...e5 or ...c5. The setup is very flexible and can be used against many different White setups.",
+    "key_pieces": ["Pirc bishop on g7", "knight on f6", "e5/c5 break"],
+    "common_mistakes_club_players": [
+      "Not knowing how to handle the Austrian Attack (4.f4)",
+      "Playing too passively and letting White build an overwhelming center"
+    ],
+    "common_mistakes_intermediate": [
+      "Mistiming the ...c5 or ...e5 break"
+    ],
+    "critical_moves": [
+      { "move": "4.f4", "explanation": "Austrian Attack — immediate aggression, one of the most dangerous responses to the Pirc." }
+    ],
+    "traps_and_tricks": [],
+    "model_games": [
+      { "player_white": "Various", "player_black": "Viktor Korchnoi", "year": 1970, "event": "Various", "why_study_it": "Korchnoi used the Pirc effectively — good models for Black's counterplay" }
+    ],
+    "elo_suitability": { "min": 1200, "max": 2500, "notes": "Good flexible defense but slightly passive — requires active play to succeed." },
+    "pablo_opinion": "The Pirc is the Modern Defense's more principled cousin. You fianchetto, you wait for White to show their plan, then you counterattack. The danger is you wait too long and White's center becomes overwhelming. Pirc players need to know when to stop being patient.",
+    "recommended_study_order": ["Understand hypermodern fianchetto setup", "Learn Austrian Attack response", "Study ...c5 and ...e5 timing", "Learn Classical Variation"],
+    "weakness_signals": ["Wants flexible defense against 1.e4", "Likes KID-style games vs e4"]
+  },
+  {
+    "opening_id": "budapest_gambit",
+    "eco_codes": ["A51", "A52"],
+    "name": "Budapest Gambit",
+    "common_name": "Budapest",
+    "move_order": "1.d4 Nf6 2.c4 e5",
+    "variations": [
+      { "name": "Fajarowicz Gambit", "moves": "1.d4 Nf6 2.c4 e5 3.dxe5 Ne4", "brief_description": "Tricky gambit — knight to e4 immediately" },
+      { "name": "Classical Budapest", "moves": "1.d4 Nf6 2.c4 e5 3.dxe5 Ng4", "brief_description": "Knight goes to g4 to recover the pawn" }
+    ],
+    "strategic_themes": ["pawn sacrifice for activity", "knight activity", "quick development", "surprise factor"],
+    "typical_white_plan": "White accepts the gambit and tries to hold the extra pawn. The challenge is that Black gets very active piece play for the investment.",
+    "typical_black_plan": "Black sacrifices the e5 pawn for rapid development and active piece play. The classic plan involves knight activity and quick kingside pressure.",
+    "key_pieces": ["knight on g4 or e4", "e5 pawn (sacrificed)", "active piece play"],
+    "common_mistakes_club_players": [
+      "White trying to hold the pawn at all costs",
+      "Black losing the initiative after the pawn sacrifice"
+    ],
+    "common_mistakes_intermediate": [
+      "Allowing Black's activity to overwhelm the position"
+    ],
+    "critical_moves": [
+      { "move": "2...e5", "explanation": "The Budapest Gambit — an immediate challenge to White's center." }
+    ],
+    "traps_and_tricks": [
+      { "name": "Budapest Trap", "moves": "1.d4 Nf6 2.c4 e5 3.dxe5 Ng4 4.Bf4 Nc6 5.Nf3 Bb4+ 6.Nbd2 Qe7 7.e3 Ngxe5 8.Nxe5 Nxe5 9.Be2 0-0 10.0-0 Bxd2", "explanation": "Black recovers material and gets an active position." }
+    ],
+    "model_games": [
+      { "player_white": "Saemisch", "player_black": "Reti", "year": 1924, "event": "Vienna", "why_study_it": "One of the earliest Budapest Gambit games — shows the tactical possibilities" }
+    ],
+    "elo_suitability": { "min": 1000, "max": 1800, "notes": "Excellent surprise weapon at club level. Becomes less effective above 1800 where White knows the theory." },
+    "pablo_opinion": "The Budapest is a club-level weapon that can absolutely devastate opponents who don't know it. Is it objectively sound? Probably not against best play. But 'best play' is not what happens at 1400 on a Tuesday night. Use it for surprise value.",
+    "recommended_study_order": ["Learn Fajarowicz and Classical lines", "Study key tactical ideas", "Learn how White can go wrong"],
+    "weakness_signals": ["Wants surprise weapons against 1.d4", "Tactical player", "Willing to sacrifice for initiative"]
+  },
+  {
+    "opening_id": "kings_gambit_four_knights",
+    "opening_id": "four_knights_game",
+    "eco_codes": ["C46", "C47", "C48", "C49"],
+    "name": "Four Knights Game",
+    "common_name": "Four Knights",
+    "move_order": "1.e4 e5 2.Nf3 Nc6 3.Nc3 Nf6",
+    "variations": [
+      { "name": "Spanish Four Knights", "moves": "1.e4 e5 2.Nf3 Nc6 3.Nc3 Nf6 4.Bb5", "brief_description": "White applies Spanish pressure in the four knights framework" },
+      { "name": "Scotch Four Knights", "moves": "1.e4 e5 2.Nf3 Nc6 3.Nc3 Nf6 4.d4", "brief_description": "Immediate central challenge" },
+      { "name": "Halloween Gambit", "moves": "1.e4 e5 2.Nf3 Nc6 3.Nc3 Nf6 4.Nxe5", "brief_description": "Wild knight sacrifice for central domination" }
+    ],
+    "strategic_themes": ["symmetrical development", "central tension", "active piece play"],
+    "typical_white_plan": "White develops quickly and applies Spanish-style pressure or opens the center with d4. The symmetric development means White needs to create an imbalance.",
+    "typical_black_plan": "Black mirrors development and aims for equality. The Rubinstein counter-attack (...Nd4) is the main way to fight for the initiative.",
+    "key_pieces": ["knights on f3/f6 and c3/c6", "e4 and e5 pawns"],
+    "common_mistakes_club_players": ["Playing symmetrically and accepting a draw", "Not knowing the Rubinstein counter-attack"],
+    "common_mistakes_intermediate": ["Missing the Halloween Gambit sacrifice"],
+    "critical_moves": [{ "move": "4.Nxe5", "explanation": "The Halloween Gambit — White sacrifices a knight for massive center pawns. Dangerous in blitz." }],
+    "traps_and_tricks": [{ "name": "Halloween Gambit", "moves": "4.Nxe5 Nxe5 5.d4 Ng6 6.e5 Ng8 7.Bc4", "explanation": "White gets three center pawns for the knight — very dangerous in rapid play." }],
+    "model_games": [{ "player_white": "Mikhail Chigorin", "player_black": "Wilhelm Steinitz", "year": 1892, "event": "World Championship", "why_study_it": "Historical context for Four Knights ideas" }],
+    "elo_suitability": { "min": 1000, "max": 2200, "notes": "Playable at all levels. Halloween Gambit is a great club weapon." },
+    "pablo_opinion": "The Four Knights is what happens when everyone develops perfectly and then realizes nobody has a plan. That's fine — it teaches players to create imbalances. The Halloween Gambit is the spicy version that can melt unprepared opponents.",
+    "recommended_study_order": ["Learn Spanish Four Knights", "Study Rubinstein counter-attack", "Learn Halloween Gambit if you want chaos"],
+    "weakness_signals": ["Likes classical symmetric positions", "Wants tactical options from quiet openings"]
+  },
+  {
+    "opening_id": "birds_opening",
+    "eco_codes": ["A02", "A03"],
+    "name": "Bird's Opening",
+    "common_name": "Bird's",
+    "move_order": "1.f4",
+    "variations": [
+      { "name": "From's Gambit", "moves": "1.f4 e5", "brief_description": "Black sacrifices immediately — very dangerous against unprepared Bird players" },
+      { "name": "Bird's vs Dutch structure", "moves": "1.f4 d5 2.Nf3 Nf6 3.g3 g6 4.Bg2", "brief_description": "Normal development; Reversed Dutch" }
+    ],
+    "strategic_themes": ["f4-f5 advance", "kingside attack", "Reversed Dutch structure", "e4 disruption"],
+    "typical_white_plan": "White plays a Dutch Defense with reversed colors — f4, Nf3, g3, Bg2, d3, 0-0. Then advance f5 and attack the kingside.",
+    "typical_black_plan": "Black should challenge the center with ...d5 or go for From's Gambit with ...e5 immediately.",
+    "key_pieces": ["f4 pawn", "bishop on g2", "f5 advance potential"],
+    "common_mistakes_club_players": [
+      "Not being ready for From's Gambit (...e5)",
+      "Playing f4 without a kingside attack plan"
+    ],
+    "common_mistakes_intermediate": ["Over-attacking without enough piece support"],
+    "critical_moves": [{ "move": "1.f4", "explanation": "Bird's Opening — immediately claiming kingside space, mirrors the Dutch Defense ideas." }],
+    "traps_and_tricks": [{ "name": "From's Gambit Trap", "moves": "1.f4 e5 2.fxe5 d6 3.exd6 Bxd6 4.Nf3 g5 5.g3 g4 6.Nh4 Ne7 7.d4 Ng6 8.Nxg6 hxg6 9.Qd3 Qh4+", "explanation": "Black gets a devastating attack if White mishandles From's Gambit." }],
+    "model_games": [{ "player_white": "Henry Bird", "player_black": "Various", "year": 1873, "event": "London", "why_study_it": "Original Bird games — historical context for the opening" }],
+    "elo_suitability": { "min": 800, "max": 1800, "notes": "Fun surprise weapon but objectively inferior. Most effective at club level." },
+    "pablo_opinion": "Bird's is a fun opening if you like chaos. The danger is From's Gambit — unprepared Bird players get absolutely demolished. Learn how to handle 1...e5 or don't play 1.f4.",
+    "recommended_study_order": ["Learn From's Gambit defense", "Study f5 advance plans", "Learn reversed Dutch ideas"],
+    "weakness_signals": ["Wants unconventional openings", "Casual player looking for fun games"]
+  },
+  {
+    "opening_id": "larsen_opening",
+    "eco_codes": ["A01"],
+    "name": "Larsen's Opening",
+    "common_name": "Larsen's (Nimzo-Larsen Attack)",
+    "move_order": "1.b3",
+    "variations": [
+      { "name": "Larsen's Main Line", "moves": "1.b3 e5 2.Bb2 Nc6 3.c4 Nf6 4.e3 d5", "brief_description": "Black establishes a center; Larsen fights from flanks" }
+    ],
+    "strategic_themes": ["hypermodern queenside fianchetto", "long diagonal pressure (Bb2)", "flexible setup", "central influence from flanks"],
+    "typical_white_plan": "White fianchettoes the bishop to b2, exerting long diagonal pressure. The plan is to fight for the center with pieces rather than pawns. Very unorthodox and flexible.",
+    "typical_black_plan": "Black should establish a strong center immediately. Don't let Larsen's hypermodern ideas go unchallenged.",
+    "key_pieces": ["bishop on b2", "central pawn structure (flexible)", "knight placement"],
+    "common_mistakes_club_players": ["Not challenging the center", "Allowing White's pieces to become dominant on the long diagonal"],
+    "common_mistakes_intermediate": ["Over-challenging and leaving weaknesses"],
+    "critical_moves": [{ "move": "1.b3", "explanation": "Larsen's opening — hypermodern bishop-first approach." }],
+    "traps_and_tricks": [],
+    "model_games": [{ "player_white": "Bent Larsen", "player_black": "Boris Spassky", "year": 1970, "event": "USSR vs Rest of World", "why_study_it": "Larsen's crushing defeat in this game (he lost badly) is instructive for what happens when Black challenges correctly" }],
+    "elo_suitability": { "min": 800, "max": 1800, "notes": "Surprise weapon. Larsen himself was a brilliant player — the opening alone won't get results without deep understanding." },
+    "pablo_opinion": "Larsen's is the opening equivalent of showing up to a knife fight without a knife and saying 'I have a plan.' Bent Larsen was creative enough to make it work. Most of us are not Bent Larsen.",
+    "recommended_study_order": ["Understand hypermodern philosophy", "Learn responses to central challenges", "Study Larsen's original games"],
+    "weakness_signals": ["Wants unconventional openings", "Creative/unorthodox player"]
+  },
+  {
+    "opening_id": "tarrasch_defense",
+    "eco_codes": ["D32", "D33", "D34"],
+    "name": "Tarrasch Defense",
+    "common_name": "Tarrasch",
+    "move_order": "1.d4 d5 2.c4 e6 3.Nc3 c5",
+    "variations": [
+      { "name": "Classical Tarrasch", "moves": "1.d4 d5 2.c4 e6 3.Nc3 c5 4.cxd5 exd5 5.Nf3 Nc6 6.g3 Nf6 7.Bg2 Be7 8.0-0 0-0", "brief_description": "Main line with IQP — very principled" },
+      { "name": "Swedish Variation", "moves": "1.d4 d5 2.c4 e6 3.Nc3 c5 4.cxd5 cxd4", "brief_description": "Wild complications with multiple captures" }
+    ],
+    "strategic_themes": ["isolated queen pawn", "piece activity vs structure", "d5 advance potential", "active piece play"],
+    "typical_white_plan": "White targets the isolated d5 pawn as a long-term weakness. The plan involves placing pieces on blockading squares (c4, e4) and converting the IQP to an endgame advantage.",
+    "typical_black_plan": "Black's IQP provides dynamic compensation — the d5 advance creates tactics, and piece activity compensates for the structural weakness. Black should attack before White can set up the blockade.",
+    "key_pieces": ["d5 pawn (isolated)", "active pieces compensating for weakness", "d5 advance potential"],
+    "common_mistakes_club_players": ["Playing Tarrasch passively — the IQP requires active play", "Allowing the blockade without fighting back"],
+    "common_mistakes_intermediate": ["Mishandling the transition to IQP endgame"],
+    "critical_moves": [{ "move": "3...c5", "explanation": "The Tarrasch move — Black immediately creates an IQP but gets active piece play." }],
+    "traps_and_tricks": [],
+    "model_games": [{ "player_white": "Kasparov", "player_black": "Portisch", "year": 1983, "event": "Niksic", "why_study_it": "Kasparov's Tarrasch masterpiece — shows perfect IQP play" }],
+    "elo_suitability": { "min": 1400, "max": 2700, "notes": "Excellent learning tool for IQP positions. Very principled." },
+    "pablo_opinion": "The Tarrasch is a chess laboratory. You create an IQP on purpose and then you fight to prove it's a strength, not a weakness. It teaches you everything about piece activity and pawn structure compensation. Study this to understand IQP positions deeply.",
+    "recommended_study_order": ["Understand IQP compensation theory", "Learn ...d5 advance timing", "Study blockade techniques", "Master IQP endgames"],
+    "weakness_signals": ["Struggles with IQP positions", "Doesn't understand pawn structure compensation"]
+  }
+]
