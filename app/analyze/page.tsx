@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { OpeningWeakness, OpeningsAnalysisResult } from "@/app/api/analyze/openings/route";
+import { sampleOpeningReport } from "@/app/analyze/sample-report";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -53,13 +53,17 @@ function winRateColor(rate: number) {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StepInput({
+  initialUsername = "",
   onSubmit,
+  onShowSample,
   apiError,
 }: {
+  initialUsername?: string;
   onSubmit: (username: string) => void;
+  onShowSample: () => void;
   apiError?: string;
 }) {
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(initialUsername);
   const [localError, setLocalError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -127,17 +131,28 @@ function StepInput({
           Enter your Chess.com username
         </h1>
         <p
+          id="analyze-help"
           className="text-base leading-7 mb-8"
           style={{ color: "var(--text-secondary)" }}
         >
-          Pablo will analyze your last 50 games for free — no account needed.
+          Pablo reads your last 50 games and names up to three opening leaks.
+          Free, and no account needed. No username yet? Open the sample report below.
         </p>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
+            <label
+              htmlFor="chess-com-username"
+              className="text-xs font-bold tracking-[0.24em] uppercase"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Chess.com username
+            </label>
             <input
               ref={inputRef}
+              id="chess-com-username"
+              name="username"
               type="text"
               value={value}
               onChange={(e) => {
@@ -147,7 +162,11 @@ function StepInput({
               placeholder="hikaru"
               autoComplete="off"
               autoCapitalize="none"
+              autoCorrect="off"
               spellCheck={false}
+              enterKeyHint="go"
+              aria-invalid={localError ? true : undefined}
+              aria-describedby={localError ? "username-error" : "analyze-help"}
               className="w-full rounded-2xl border px-5 py-4 text-xl outline-none transition-all"
               style={{
                 borderColor: localError
@@ -172,7 +191,7 @@ function StepInput({
               }}
             />
             {localError && (
-              <p className="text-sm" style={{ color: "#ff9a9a" }}>
+              <p id="username-error" role="alert" className="text-sm" style={{ color: "#ff9a9a" }}>
                 {localError}
               </p>
             )}
@@ -187,9 +206,23 @@ function StepInput({
           </button>
         </form>
 
+        <button
+          type="button"
+          onClick={onShowSample}
+          className="mt-4 w-full min-h-11 rounded-2xl border px-5 py-3 text-sm font-bold transition-colors"
+          style={{
+            borderColor: "rgba(201,168,76,0.28)",
+            color: "var(--gold-light)",
+            background: "rgba(201,168,76,0.06)",
+          }}
+        >
+          Open the sample report
+        </button>
+
         {/* API error */}
         {apiError && (
           <div
+            role="alert"
             className="mt-4 rounded-2xl border p-4"
             style={{
               borderColor: "rgba(224,97,97,0.28)",
@@ -213,7 +246,7 @@ function StepInput({
           className="mt-6 text-center text-sm"
           style={{ color: "var(--text-muted)" }}
         >
-          Uses the public Chess.com API · No signup required
+          Uses the public Chess.com API · Sample report stays on this device
         </p>
       </div>
     </div>
@@ -413,9 +446,11 @@ function StatCard({ report }: { report: OpeningsAnalysisResult }) {
 function WeaknessCard({
   weakness,
   rank,
+  isSample = false,
 }: {
   weakness: OpeningWeakness;
   rank: number;
+  isSample?: boolean;
 }) {
   const colorLabel = weakness.color === "white" ? "as White" : "as Black";
   const badgeColor =
@@ -555,40 +590,42 @@ function WeaknessCard({
         </p>
       </div>
 
-      {/* Teaser CTA */}
-      <div
-        className="flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
-        style={{
-          borderColor: "rgba(201,168,76,0.15)",
-          background: "rgba(201,168,76,0.05)",
-        }}
-      >
-        <p
-          className="text-sm"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          Pablo has a full prep plan for this.
-        </p>
-        <Link
-          href="/upgrade"
-          className="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap"
+      {/* Teaser CTA — hidden on the sample so the demo does not ask for payment */}
+      {isSample ? null : (
+        <div
+          className="flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
           style={{
-            borderColor: "rgba(201,168,76,0.3)",
-            color: "var(--gold-light)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "var(--gold)";
-            e.currentTarget.style.background = "rgba(201,168,76,0.1)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "rgba(201,168,76,0.3)";
-            e.currentTarget.style.background = "";
+            borderColor: "rgba(201,168,76,0.15)",
+            background: "rgba(201,168,76,0.05)",
           }}
         >
-          Upgrade to Pro
-          <span>→</span>
-        </Link>
-      </div>
+          <p
+            className="text-sm"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Pablo has a full prep plan for this.
+          </p>
+          <Link
+            href="/upgrade"
+            className="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap"
+            style={{
+              borderColor: "rgba(201,168,76,0.3)",
+              color: "var(--gold-light)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "var(--gold)";
+              e.currentTarget.style.background = "rgba(201,168,76,0.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "rgba(201,168,76,0.3)";
+              e.currentTarget.style.background = "";
+            }}
+          >
+            Upgrade to Pro
+            <span>→</span>
+          </Link>
+        </div>
+      )}
     </article>
   );
 }
@@ -661,7 +698,7 @@ function PabloSummaryCard({ summary }: { summary: string }) {
             userSelect: "none",
           }}
         >
-          "
+          &ldquo;
         </span>
 
         {/* Summary text */}
@@ -849,7 +886,65 @@ function SaveGatePrompt({
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-function UpgradeCTA({ worstOpening }: { worstOpening: string | null }) {
+function UpgradeCTA({
+  worstOpening,
+  isSample = false,
+  onUseOwnGames,
+}: {
+  worstOpening: string | null;
+  isSample?: boolean;
+  onUseOwnGames?: () => void;
+}) {
+  if (isSample) {
+    return (
+      <div
+        className="rounded-[1.75rem] border p-8 sm:p-10 flex flex-col items-center text-center gap-5"
+        style={{
+          borderColor: "rgba(201,168,76,0.25)",
+          background:
+            "linear-gradient(160deg, rgba(28,22,8,0.98) 0%, rgba(12,14,18,0.99) 100%)",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.5)",
+        }}
+      >
+        <p
+          className="text-xs font-bold tracking-[0.35em] uppercase"
+          style={{ color: "var(--gold)" }}
+        >
+          Your turn
+        </p>
+        <h2
+          className="text-3xl font-bold sm:text-4xl max-w-lg"
+          style={{ fontFamily: "var(--font-playfair), serif" }}
+        >
+          That was the sample. Your games are still free.
+        </h2>
+        <p
+          className="text-base leading-7 max-w-md"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          Enter a Chess.com username and Pablo will read your last 50 games the
+          same way. Pro is for the prep plan, after you have seen your own report.
+        </p>
+        <button
+          type="button"
+          onClick={onUseOwnGames}
+          className="btn-gold mt-2 inline-flex items-center gap-2 rounded-2xl px-8 py-4 text-base font-bold"
+          style={{ color: "#0a0b0c" }}
+        >
+          Analyze my games
+          <span>→</span>
+        </button>
+        <Link
+          href="/upgrade"
+          className="text-sm font-medium underline-offset-4 hover:underline"
+          style={{ color: "var(--text-muted)" }}
+        >
+          See what Pro adds
+        </Link>
+      </div>
+    );
+  }
+
   const label = worstOpening
     ? `Ready to fix your ${worstOpening} for good?`
     : "Ready to take your openings to the next level?";
@@ -911,11 +1006,13 @@ function StepReport({
   report,
   username,
   sessionUser,
+  isSample,
   onReset,
 }: {
   report: OpeningsAnalysisResult;
   username: string;
   sessionUser: SessionUser;
+  isSample: boolean;
   onReset: () => void;
 }) {
   const worstOpening =
@@ -923,9 +1020,9 @@ function StepReport({
   const [autoSaved, setAutoSaved] = useState(false);
   const [autoSaveError, setAutoSaveError] = useState(false);
 
-  // Auto-save for logged-in users
+  // Auto-save for logged-in users. The sample is not their games.
   useEffect(() => {
-    if (!sessionUser) return;
+    if (!sessionUser || isSample) return;
     fetch("/api/analyses/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -936,7 +1033,7 @@ function StepReport({
         else setAutoSaveError(true);
       })
       .catch(() => setAutoSaveError(true));
-  }, [sessionUser, report, username]);
+  }, [sessionUser, report, username, isSample]);
 
   return (
     <main
@@ -956,6 +1053,7 @@ function StepReport({
             </span>
           </div>
           <button
+            type="button"
             onClick={onReset}
             className="rounded-full border px-4 py-2 text-sm font-medium transition-colors"
             style={{
@@ -971,9 +1069,32 @@ function StepReport({
               e.currentTarget.style.color = "var(--text-secondary)";
             }}
           >
-            Analyze another player
+            {isSample ? "Use my username" : "Analyze another player"}
           </button>
         </div>
+
+        {isSample && (
+          <div
+            role="status"
+            className="rounded-[1.75rem] border p-5 sm:p-6"
+            style={{
+              borderColor: "rgba(201,168,76,0.28)",
+              background: "rgba(201,168,76,0.08)",
+            }}
+          >
+            <p
+              className="text-xs font-bold tracking-[0.3em] uppercase mb-2"
+              style={{ color: "var(--gold)" }}
+            >
+              Sample report
+            </p>
+            <p className="text-sm leading-7" style={{ color: "var(--text-secondary)" }}>
+              This is a club player&apos;s last 24 games, so you can see the free
+              report before typing anything. Nothing here is your account, and
+              Pablo does not save it.
+            </p>
+          </div>
+        )}
 
         {/* Headline */}
         <div className="animate-fadeInUp" style={{ opacity: 0, animationDelay: "0.05s" }}>
@@ -987,7 +1108,7 @@ function StepReport({
             className="text-3xl font-bold sm:text-4xl"
             style={{ fontFamily: "var(--font-playfair), serif" }}
           >
-            {username}&apos;s Opening Profile
+            {isSample ? "Sample opening profile" : `${username}'s Opening Profile`}
           </h1>
         </div>
 
@@ -1011,7 +1132,7 @@ function StepReport({
                 className="animate-fadeInUp"
                 style={{ opacity: 0, animationDelay: `${0.25 + i * 0.1}s` }}
               >
-                <WeaknessCard weakness={w} rank={i} />
+                <WeaknessCard weakness={w} rank={i} isSample={isSample} />
               </div>
             ))}
           </div>
@@ -1071,8 +1192,8 @@ function StepReport({
           </div>
         )}
 
-        {/* Gate prompt (anonymous users) */}
-        {!sessionUser && (
+        {/* Gate prompt (anonymous users). Skip it on the sample. */}
+        {!sessionUser && !isSample && (
           <div className="animate-fadeInUp" style={{ opacity: 0, animationDelay: "0.52s" }}>
             <SaveGatePrompt report={report} username={username} />
           </div>
@@ -1080,7 +1201,11 @@ function StepReport({
 
         {/* Upgrade CTA */}
         <div className="animate-fadeInUp" style={{ opacity: 0, animationDelay: "0.62s" }}>
-          <UpgradeCTA worstOpening={worstOpening} />
+          <UpgradeCTA
+            worstOpening={worstOpening}
+            isSample={isSample}
+            onUseOwnGames={onReset}
+          />
         </div>
       </div>
     </main>
@@ -1091,9 +1216,17 @@ function StepReport({
 
 function AnalyzePageInner() {
   const searchParams = useSearchParams();
-  const [step, setStep] = useState<Step>("input");
-  const [report, setReport] = useState<OpeningsAnalysisResult | null>(null);
-  const [username, setUsername] = useState(searchParams.get("username") ?? "");
+  const router = useRouter();
+  const sampleFromQuery = searchParams.get("sample") === "1";
+  const usernameFromQuery = searchParams.get("username")?.trim() ?? "";
+  const [step, setStep] = useState<Step>(sampleFromQuery ? "report" : "input");
+  const [report, setReport] = useState<OpeningsAnalysisResult | null>(
+    sampleFromQuery ? sampleOpeningReport : null,
+  );
+  const [isSample, setIsSample] = useState(sampleFromQuery);
+  const [username, setUsername] = useState(
+    sampleFromQuery ? sampleOpeningReport.username : usernameFromQuery,
+  );
   const [errorMessage, setErrorMessage] = useState("");
   const [sessionUser, setSessionUser] = useState<SessionUser>(undefined as unknown as SessionUser);
 
@@ -1113,15 +1246,36 @@ function AnalyzePageInner() {
   const finishLoading = useCallback(() => {
     if (analysisErrorRef.current) {
       setErrorMessage(analysisErrorRef.current);
+      setIsSample(false);
       setStep("input");
     } else if (analysisReadyRef.current) {
+      setIsSample(false);
       setReport(analysisReadyRef.current);
       setStep("report");
     }
   }, []);
 
+  function showSample() {
+    if (minLoadTimeRef.current) clearTimeout(minLoadTimeRef.current);
+    analysisReadyRef.current = null;
+    analysisErrorRef.current = null;
+    setErrorMessage("");
+    setIsSample(true);
+    setReport(sampleOpeningReport);
+    setUsername(sampleOpeningReport.username);
+    setStep("report");
+    const preset = searchParams.get("username")?.trim() ?? "";
+    router.replace(
+      preset
+        ? `/analyze?sample=1&username=${encodeURIComponent(preset)}`
+        : "/analyze?sample=1",
+      { scroll: false },
+    );
+  }
+
   async function handleSubmit(user: string) {
     setUsername(user);
+    setIsSample(false);
     setErrorMessage("");
     analysisReadyRef.current = null;
     analysisErrorRef.current = null;
@@ -1202,12 +1356,20 @@ function AnalyzePageInner() {
 
   function handleReset() {
     if (minLoadTimeRef.current) clearTimeout(minLoadTimeRef.current);
+    const preset = searchParams.get("username")?.trim() ?? "";
     setStep("input");
     setReport(null);
+    setIsSample(false);
     setErrorMessage("");
-    setUsername("");
+    setUsername(isSample ? preset : "");
     analysisReadyRef.current = null;
     analysisErrorRef.current = null;
+    router.replace(
+      isSample && preset
+        ? `/analyze?username=${encodeURIComponent(preset)}`
+        : "/analyze",
+      { scroll: false },
+    );
   }
 
   if (step === "loading") {
@@ -1220,12 +1382,20 @@ function AnalyzePageInner() {
         report={report}
         username={username}
         sessionUser={sessionUser}
+        isSample={isSample}
         onReset={handleReset}
       />
     );
   }
 
-  return <StepInput onSubmit={handleSubmit} apiError={errorMessage || undefined} />;
+  return (
+    <StepInput
+      initialUsername={username}
+      onSubmit={handleSubmit}
+      onShowSample={showSample}
+      apiError={errorMessage || undefined}
+    />
+  );
 }
 
 export default function AnalyzePage() {
