@@ -1,9 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+
+function queryErrorMessage(error: string | null) {
+  if (error === "invalid_token") {
+    return "That link has expired or already been used. Enter your email to get a new one.";
+  }
+  if (error === "missing_token") {
+    return "Invalid login link. Enter your email below.";
+  }
+  return "";
+}
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -12,24 +22,17 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState("");
-
-  useEffect(() => {
-    if (error === "invalid_token") {
-      setErrorMsg("That link has expired or already been used. Enter your email to get a new one.");
-    } else if (error === "missing_token") {
-      setErrorMsg("Invalid login link. Enter your email below.");
-    }
-  }, [error]);
+  const [formError, setFormError] = useState("");
+  const errorMsg = formError || queryErrorMessage(error);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = email.trim().toLowerCase();
     if (!trimmed || !trimmed.includes("@")) {
-      setErrorMsg("Enter a valid email address.");
+      setFormError("Enter a valid email address.");
       return;
     }
-    setErrorMsg("");
+    setFormError("");
     setStatus("sending");
     try {
       const res = await fetch("/api/auth/send-magic-link", {
@@ -38,13 +41,13 @@ function LoginForm() {
         body: JSON.stringify({ email: trimmed, redirect }),
       });
       if (!res.ok) {
-        setErrorMsg("Something went wrong. Try again.");
+        setFormError("Something went wrong. Try again.");
         setStatus("error");
         return;
       }
       setStatus("sent");
     } catch {
-      setErrorMsg("Couldn't reach the server. Check your connection.");
+      setFormError("Couldn't reach the server. Check your connection.");
       setStatus("error");
     }
   }
@@ -126,7 +129,7 @@ function LoginForm() {
         <input
           type="email"
           value={email}
-          onChange={(e) => { setEmail(e.target.value); setErrorMsg(""); }}
+          onChange={(e) => { setEmail(e.target.value); setFormError(""); }}
           placeholder="you@example.com"
           autoComplete="email"
           className="w-full rounded-2xl border px-5 py-4 text-base outline-none transition-all"
