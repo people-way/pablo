@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { DashboardData, OpeningCard } from "@/app/api/dashboard/route";
+import { flushPendingAnalysis } from "@/lib/pending-analysis";
 
 // ─── Sparkline component ──────────────────────────────────────────────────────
 
@@ -295,6 +296,105 @@ function BadgeShelf({ badges }: { badges: string[] }) {
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
+function ChessUsernameEditor({
+  username,
+  onSaved,
+}: {
+  username: string | null;
+  onSaved: (username: string) => void;
+}) {
+  const [value, setValue] = useState(username ?? "");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setStatus("saving");
+    setMessage("");
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chess_com_username: value }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        chess_com_username?: string;
+      } | null;
+      if (!response.ok || !payload?.chess_com_username) {
+        setStatus("error");
+        setMessage(payload?.error || "Couldn't save that username.");
+        return;
+      }
+      setValue(payload.chess_com_username);
+      setStatus("saved");
+      setMessage("Saved. Analyze will prefill this Chess.com username.");
+      onSaved(payload.chess_com_username);
+    } catch {
+      setStatus("error");
+      setMessage("Couldn't reach the server.");
+    }
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-[1.5rem] border p-5 mb-6"
+      style={{
+        borderColor: "rgba(201,168,76,0.15)",
+        background: "rgba(14,12,10,0.9)",
+      }}
+    >
+      <label
+        htmlFor="chess-com-username"
+        className="text-xs font-bold tracking-[0.28em] uppercase"
+        style={{ color: "var(--gold)" }}
+      >
+        Chess.com username
+      </label>
+      <p className="mt-2 mb-4 text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
+        Pablo tracks this handle. Update it any time — your saved opening stats stay on this account.
+      </p>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <input
+          id="chess-com-username"
+          value={value}
+          onChange={(event) => {
+            setValue(event.target.value);
+            if (status !== "idle") setStatus("idle");
+          }}
+          placeholder="your-handle"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          className="flex-1 rounded-2xl border px-4 py-3 text-base outline-none"
+          style={{
+            borderColor: "var(--border-gold)",
+            background: "rgba(10,11,12,0.9)",
+            color: "var(--text-primary)",
+          }}
+        />
+        <button
+          type="submit"
+          disabled={status === "saving"}
+          className="btn-gold rounded-2xl px-6 py-3 text-sm font-bold"
+          style={{ color: "#0a0b0c", opacity: status === "saving" ? 0.7 : 1 }}
+        >
+          {status === "saving" ? "Saving..." : "Save username"}
+        </button>
+      </div>
+      {message && (
+        <p
+          className="mt-3 text-sm"
+          style={{ color: status === "error" ? "#ff9a9a" : "#8ce0ac" }}
+        >
+          {message}
+        </p>
+      )}
+    </form>
+  );
+}
+
 function EmptyState({ username }: { username: string | null }) {
   return (
     <div className="flex flex-col items-center text-center py-16 gap-6 max-w-md mx-auto">
@@ -339,19 +439,35 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/dashboard")
-      .then((r) => {
-        if (r.status === 401) {
+    let cancelled = false;
+    (async () => {
+      try {
+        await flushPendingAnalysis();
+        const response = await fetch("/api/dashboard");
+        if (response.status === 401) {
           window.location.href = "/login?redirect=/dashboard";
-          return null;
+          return;
         }
-        return r.json();
-      })
-      .then((d) => {
-        if (d) setData(d as DashboardData);
-      })
-      .catch(() => setError("Couldn't load your dashboard. Try refreshing."))
-      .finally(() => setLoading(false));
+        const payload = (await response.json()) as DashboardData & { error?: string };
+        if (!response.ok) {
+          throw new Error(payload.error || "Couldn't load your dashboard.");
+        }
+        if (!cancelled) setData(payload);
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Couldn't load your dashboard. Try refreshing.",
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function handleLogout() {
@@ -401,7 +517,7 @@ export default function DashboardPage() {
   if (!data) return null;
 
   const displayName = data.user.chess_com_username || data.user.email.split("@")[0];
-  const hasData = data.openingCards.length > 0;
+  const hasData = data.totalAnalyses > 0 || data.openingCards.length > 0;
 
   // Mastery distribution
   const masteryBreakdown = [1, 2, 3, 4, 5].map((lvl) => ({
@@ -419,21 +535,23 @@ export default function DashboardPage() {
         {/* ── Header ── */}
         <header className="flex items-center justify-between gap-4 mb-10">
           <div className="flex items-center gap-3">
-            <span
-              style={{
-                fontSize: "1.6rem",
-                color: "var(--gold)",
-                filter: "drop-shadow(0 0 8px rgba(201,168,76,0.4))",
-              }}
-            >
-              ♞
-            </span>
-            <span
-              className="text-xs font-bold tracking-[0.35em] uppercase"
-              style={{ color: "var(--gold)" }}
-            >
-              Pablo
-            </span>
+            <Link href="/" className="flex items-center gap-3">
+              <span
+                style={{
+                  fontSize: "1.6rem",
+                  color: "var(--gold)",
+                  filter: "drop-shadow(0 0 8px rgba(201,168,76,0.4))",
+                }}
+              >
+                ♞
+              </span>
+              <span
+                className="text-xs font-bold tracking-[0.35em] uppercase"
+                style={{ color: "var(--gold)" }}
+              >
+                Pablo
+              </span>
+            </Link>
           </div>
           <div className="flex items-center gap-3">
             <Link
@@ -441,7 +559,7 @@ export default function DashboardPage() {
               className="btn-gold rounded-xl px-5 py-2.5 text-sm font-bold"
               style={{ color: "#0a0b0c" }}
             >
-              + New Analysis
+              Analyze
             </Link>
             <button
               onClick={handleLogout}
@@ -519,6 +637,17 @@ export default function DashboardPage() {
             </div>
           </div>
         </section>
+
+        <ChessUsernameEditor
+          username={data.user.chess_com_username}
+          onSaved={(chess_com_username) =>
+            setData((current) =>
+              current
+                ? { ...current, user: { ...current.user, chess_com_username } }
+                : current,
+            )
+          }
+        />
 
         {!hasData ? (
           <EmptyState username={data.user.chess_com_username} />

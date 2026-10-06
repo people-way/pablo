@@ -1,9 +1,15 @@
 import { getCurrentUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const user = await getCurrentUser();
+  let user;
+  try {
+    user = await getCurrentUser();
+  } catch {
+    return Response.json({ user: null });
+  }
   if (!user) {
     return Response.json({ user: null });
   }

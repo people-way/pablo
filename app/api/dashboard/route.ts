@@ -1,7 +1,8 @@
 import { getCurrentUser } from "@/lib/auth";
-import { query } from "@/lib/db";
+import { query, queryOne } from "@/lib/db";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type AnalysisRow = {
   id: string;
@@ -115,23 +116,50 @@ function computeStreak(analyses: { run_at: string }[]): number {
 }
 
 export async function GET() {
-  const user = await getCurrentUser();
+  let user;
+  try {
+    user = await getCurrentUser();
+  } catch (error) {
+    console.error("Dashboard auth lookup failed", error instanceof Error ? error.message : "");
+    return Response.json(
+      { error: "Couldn't load your dashboard. Check DATABASE_URL and try again." },
+      { status: 503 },
+    );
+  }
   if (!user) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const [analyses, openingStats] = await Promise.all([
-    query<AnalysisRow>(
-      `SELECT id, chess_com_username, run_at, total_games, wins, losses, draws, win_rate, opening_breakdown, pablo_summary
-       FROM analyses WHERE user_id = $1 ORDER BY run_at DESC LIMIT 50`,
-      [user.id],
-    ),
-    query<OpeningStatRow>(
-      `SELECT opening_family, color, games_played, wins, win_rate, last_updated
-       FROM opening_stats WHERE user_id = $1 ORDER BY games_played DESC`,
-      [user.id],
-    ),
-  ]);
+  let analyses: AnalysisRow[];
+  let openingStats: OpeningStatRow[];
+  let totalCount = 0;
+  try {
+    const [analysisRows, statRows, countRow] = await Promise.all([
+      query<AnalysisRow>(
+        `SELECT id, chess_com_username, run_at, total_games, wins, losses, draws, win_rate, opening_breakdown, pablo_summary
+         FROM analyses WHERE user_id = $1 ORDER BY run_at DESC LIMIT 50`,
+        [user.id],
+      ),
+      query<OpeningStatRow>(
+        `SELECT opening_family, color, games_played, wins, win_rate, last_updated
+         FROM opening_stats WHERE user_id = $1 ORDER BY games_played DESC`,
+        [user.id],
+      ),
+      queryOne<{ count: string }>(
+        `SELECT COUNT(*)::text AS count FROM analyses WHERE user_id = $1`,
+        [user.id],
+      ),
+    ]);
+    analyses = analysisRows;
+    openingStats = statRows;
+    totalCount = Number(countRow?.count ?? analysisRows.length);
+  } catch (error) {
+    console.error("Dashboard query failed", error instanceof Error ? error.message : "");
+    return Response.json(
+      { error: "Couldn't load your dashboard. Check DATABASE_URL and try again." },
+      { status: 503 },
+    );
+  }
 
   const streak = computeStreak(analyses);
   const lastAnalysis = analyses[0] ?? null;
@@ -182,7 +210,7 @@ export async function GET() {
       chess_com_username: user.chess_com_username,
     },
     streak,
-    totalAnalyses: analyses.length,
+    totalAnalyses: totalCount,
     lastAnalysisAt: lastAnalysis?.run_at ?? null,
     openingCards,
     recentSummary: lastAnalysis?.pablo_summary ?? null,

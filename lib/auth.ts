@@ -1,10 +1,43 @@
 import { cookies } from "next/headers";
-import { query, queryOne } from "./db";
+import { ensureSchema, getPool, query, queryOne } from "./db";
 import crypto from "crypto";
 
 export const SESSION_COOKIE = "pablo_session";
 const SESSION_DAYS = 30;
 const MAGIC_LINK_MINUTES = 15;
+export const SESSION_MAX_AGE = SESSION_DAYS * 24 * 60 * 60;
+
+export function isAuthBypassEnabled(): boolean {
+  if (process.env.PABLO_AUTH_BYPASS === "1") return true;
+  return process.env.NODE_ENV === "development";
+}
+
+export function sessionCookieOptions(maxAge = SESSION_MAX_AGE) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    maxAge,
+    path: "/",
+  };
+}
+
+/** Only same-origin relative paths. Blocks open redirects. */
+export function safeRedirectPath(value: unknown, fallback = "/dashboard"): string {
+  if (typeof value !== "string") return fallback;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("/")) return fallback;
+  if (trimmed.startsWith("//") || trimmed.startsWith("/\\")) return fallback;
+  if (trimmed.includes("://") || trimmed.includes("\\")) return fallback;
+  return trimmed;
+}
+
+export function normalizeChessComUsername(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!/^[A-Za-z0-9_-]{3,25}$/.test(trimmed)) return null;
+  return trimmed;
+}
 
 export type User = {
   id: string;
@@ -100,22 +133,45 @@ export async function upsertUserByEmail(
 export async function updateChessUsername(
   userId: string,
   username: string,
+  options?: { migrateHistory?: boolean },
 ): Promise<void> {
-  await query(
-    "UPDATE users SET chess_com_username = $1, last_seen = NOW() WHERE id = $2",
-    [username, userId],
-  );
+  await ensureSchema();
+  const client = await getPool().connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      "UPDATE users SET chess_com_username = $1, last_seen = NOW() WHERE id = $2",
+      [username, userId],
+    );
+    if (options?.migrateHistory) {
+      await client.query(
+        "UPDATE analyses SET chess_com_username = $1 WHERE user_id = $2",
+        [username, userId],
+      );
+      await client.query(
+        "UPDATE opening_stats SET chess_com_username = $1, last_updated = NOW() WHERE user_id = $2",
+        [username, userId],
+      );
+    }
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 // ─── Server-side session reader ───────────────────────────────────────────────
 
 export async function getCurrentUser(): Promise<User | null> {
+  let token: string | undefined;
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get(SESSION_COOKIE)?.value;
-    if (!token) return null;
-    return await getSessionUser(token);
+    token = cookieStore.get(SESSION_COOKIE)?.value;
   } catch {
     return null;
   }
+  if (!token) return null;
+  return await getSessionUser(token);
 }
