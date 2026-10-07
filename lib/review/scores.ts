@@ -80,6 +80,15 @@ export function moveAccuracy(before: NodeEval, after: NodeEval, color: Side) {
   return accuracyFromWinLoss(winBefore - winAfter);
 }
 
+/** Pawns lost, or "mat" when the swing is a mating net rather than a normal eval. */
+export function formatCentipawnLoss(cpLoss: number) {
+  if (cpLoss >= 5_000) {
+    return "mat";
+  }
+
+  return `-${(cpLoss / 100).toFixed(2)}`;
+}
+
 export function formatEval(evaluation: NodeEval) {
   if (Math.abs(evaluation.cp) >= MATE_CP && evaluation.mate == null) {
     return evaluation.cp > 0 ? "+Mat" : "-Mat";

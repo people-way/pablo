@@ -4,7 +4,7 @@ import { analyzeGame } from "./analyze-game";
 import { assessMove, classifyCentipawnLoss, summarizePlayer, summaryText } from "./classify";
 import { parseFen, parsePgn } from "./parse";
 import { SAMPLE_PGN } from "./sample";
-import { accuracyFromWinLoss, moveAccuracy, winPercent } from "./scores";
+import { accuracyFromWinLoss, formatCentipawnLoss, moveAccuracy, winPercent } from "./scores";
 import { readSaved, removeSaved, upsertSaved } from "./storage";
 import { parseBestMove, parseInfoLine } from "./uci";
 
@@ -53,6 +53,8 @@ describe("classification", () => {
     assert.ok(accuracyFromWinLoss(30) < 40);
     const accurate = moveAccuracy({ cp: 0, mate: null }, { cp: 0, mate: null }, "w");
     assert.equal(Number(accurate.toFixed(1)), 100);
+    assert.equal(formatCentipawnLoss(150), "-1.50");
+    assert.equal(formatCentipawnLoss(100_000), "mat");
     assert.ok(winPercent(0) === 50);
     assert.ok(winPercent(400) > 80);
   });

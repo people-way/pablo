@@ -8,7 +8,7 @@ import { classLabel, summarizePlayer, summaryText } from "@/lib/review/classify"
 import { ReviewEngine, type EngineSearch } from "@/lib/review/engine-client";
 import { parseFen, parsePgn, ReviewInputError, sanLine } from "@/lib/review/parse";
 import { SAMPLE_PGN } from "@/lib/review/sample";
-import { formatEval, sideToMove, toWhiteView } from "@/lib/review/scores";
+import { formatCentipawnLoss, formatEval, sideToMove, toWhiteView } from "@/lib/review/scores";
 import { readSaved, removeSaved, upsertSaved } from "@/lib/review/storage";
 import type { MoveAnalysis, NodeEval, ParsedGame, SavedReview, Side } from "@/lib/review/types";
 import { ChessBoard } from "./board";
@@ -806,7 +806,7 @@ export function RevueApp() {
               <div className="rounded-xl p-3 text-sm" style={{ background: "var(--bg-secondary)" }}>
                 <p className="font-semibold" style={{ color: classColor(currentAnalysis.classification) }}>
                   {classLabel(currentAnalysis.classification)}
-                  {currentAnalysis.cpLoss > 0 ? ` · -${(currentAnalysis.cpLoss / 100).toFixed(2)}` : ""}
+                  {currentAnalysis.cpLoss > 0 ? ` · ${formatCentipawnLoss(currentAnalysis.cpLoss)}` : ""}
                 </p>
                 <p className="mt-1" style={{ color: "var(--text-secondary)" }}>
                   Meilleur coup : {currentAnalysis.bestSan ?? "—"}
