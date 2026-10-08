@@ -1,7 +1,7 @@
 [
   {
     "opening_id": "italian_game",
-    "eco_codes": ["C50", "C51", "C52", "C53", "C54", "C55"],
+    "eco_codes": ["C50", "C51", "C52", "C53", "C54", "C55", "C56", "C57", "C58", "C59"],
     "name": "Italian Game",
     "common_name": "Italian",
     "move_order": "1.e4 e5 2.Nf3 Nc6 3.Bc4",
