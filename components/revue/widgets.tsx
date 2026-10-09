@@ -1,4 +1,7 @@
-import type { MoveAnalysis, MoveClass, NodeEval, ParsedMove } from "@/lib/review/types";
+"use client";
+
+import { useEffect, useRef } from "react";
+import type { MoveAnalysis, MoveClass, NodeEval, ParsedMove, Side } from "@/lib/review/types";
 import { classLabel } from "@/lib/review/classify";
 import { formatEval, whiteBarShare } from "@/lib/review/scores";
 
@@ -15,19 +18,34 @@ export function classColor(classification: MoveClass) {
   return CLASS_COLOR[classification];
 }
 
-export function EvalBar({ evaluation }: { evaluation: NodeEval | null }) {
+export function EvalBar({
+  evaluation,
+  orientation = "w",
+}: {
+  evaluation: NodeEval | null;
+  orientation?: Side;
+}) {
   const share = evaluation ? whiteBarShare(evaluation.cp) : 0.5;
   const label = evaluation ? formatEval(evaluation) : "…";
+  const whiteFromBottom = orientation === "w";
 
   return (
-    <div className="flex w-7 shrink-0 flex-col items-center self-stretch sm:w-9" aria-hidden="true">
+    <div
+      className="flex w-7 shrink-0 flex-col items-center self-stretch sm:w-9"
+      aria-label={`Évaluation ${label}, du point de vue des blancs`}
+    >
       <div
         className="relative min-h-0 w-full flex-1 overflow-hidden rounded-md"
         style={{ background: "#1c140f", border: "1px solid var(--border)" }}
       >
         <div
-          className="absolute inset-x-0 bottom-0"
-          style={{ height: `${Math.round(share * 1000) / 10}%`, background: "#f4efe6" }}
+          className="absolute inset-x-0"
+          style={{
+            height: `${Math.round(share * 1000) / 10}%`,
+            background: "#f4efe6",
+            bottom: whiteFromBottom ? 0 : undefined,
+            top: whiteFromBottom ? undefined : 0,
+          }}
         />
       </div>
       <div className="mt-1 text-center text-[10px] font-semibold leading-tight" style={{ color: "var(--gold-light)" }}>
@@ -60,9 +78,9 @@ export function EvalChart({
   const width = 320;
   const height = 96;
   const points = evals.slice(0, count).map((evaluation, index) => {
-    const cp = Math.max(-800, Math.min(800, evaluation?.cp ?? 0));
+    const share = whiteBarShare(evaluation?.cp ?? 0);
     const x = (index / (count - 1)) * width;
-    const y = height - ((cp + 800) / 1600) * height;
+    const y = height - share * height;
     return `${x},${y}`;
   });
 
@@ -84,7 +102,7 @@ export function EvalChart({
         {evals[ply] && ply < count ? (
           <circle
             cx={(ply / (count - 1)) * width}
-            cy={height - ((Math.max(-800, Math.min(800, evals[ply]?.cp ?? 0)) + 800) / 1600) * height}
+            cy={height - whiteBarShare(evals[ply]?.cp ?? 0) * height}
             r="4.5"
             fill="#f0ede8"
           />
@@ -117,13 +135,19 @@ export function MoveList({
     });
   }
 
+  const activeRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: "nearest" });
+  }, [ply, exploring]);
+
   return (
     <ol className="max-h-72 space-y-1 overflow-y-auto pr-1 text-sm">
       {rows.map((row) => (
         <li key={row.number} className="grid grid-cols-[2rem_1fr_1fr] items-center gap-1">
           <span style={{ color: "var(--text-muted)" }}>{row.number}.</span>
-          <MoveButton move={row.white} analysis={row.white ? analyses[row.white.ply - 1] : null} active={!exploring && ply === row.white?.ply} onPick={onPick} />
-          <MoveButton move={row.black} analysis={row.black ? analyses[row.black.ply - 1] : null} active={!exploring && ply === row.black?.ply} onPick={onPick} />
+          <MoveButton move={row.white} analysis={row.white ? analyses[row.white.ply - 1] : null} active={!exploring && ply === row.white?.ply} onPick={onPick} activeRef={activeRef} />
+          <MoveButton move={row.black} analysis={row.black ? analyses[row.black.ply - 1] : null} active={!exploring && ply === row.black?.ply} onPick={onPick} activeRef={activeRef} />
         </li>
       ))}
     </ol>
@@ -135,11 +159,13 @@ function MoveButton({
   analysis,
   active,
   onPick,
+  activeRef,
 }: {
   move?: ParsedMove;
   analysis: MoveAnalysis | null;
   active: boolean;
   onPick: (ply: number) => void;
+  activeRef: { current: HTMLButtonElement | null };
 }) {
   if (!move) {
     return <span />;
@@ -148,8 +174,9 @@ function MoveButton({
   return (
     <button
       type="button"
+      ref={active ? activeRef : undefined}
       onClick={() => onPick(move.ply)}
-      className="rounded-md px-2 py-1 text-left font-medium"
+      className="min-h-10 rounded-md px-2 py-1 text-left font-medium"
       style={{
         color: analysis ? classColor(analysis.classification) : "var(--text-primary)",
         background: active ? "rgba(201,168,76,0.16)" : "transparent",

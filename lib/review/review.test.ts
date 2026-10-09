@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { analyzeGame } from "./analyze-game";
 import { assessMove, classifyCentipawnLoss, summarizePlayer, summaryText } from "./classify";
-import { parseFen, parsePgn } from "./parse";
+import { parseFen, parsePgn, parsePgnCollection } from "./parse";
 import { SAMPLE_PGN } from "./sample";
 import { accuracyFromWinLoss, formatCentipawnLoss, moveAccuracy, winPercent } from "./scores";
 import { readSaved, removeSaved, upsertSaved } from "./storage";
@@ -32,6 +32,49 @@ describe("classification", () => {
     });
 
     assert.deepEqual(assessed, { classification: "best", cpLoss: 0, accuracy: 100 });
+  });
+
+  it("does not call a still-winning dropped mate a ninety-pawn blunder", () => {
+    const droppedButWinning = assessMove({
+      color: "w",
+      playedUci: "d1d8",
+      bestUci: "d1h5",
+      before: { cp: 99_998, mate: 2 },
+      after: { cp: 1100, mate: null },
+    });
+    assert.equal(droppedButWinning.classification, "inaccuracy");
+    assert.ok(droppedButWinning.cpLoss < 500);
+
+    const droppedIntoAMess = assessMove({
+      color: "w",
+      playedUci: "d1d8",
+      bestUci: "d1h5",
+      before: { cp: 99_998, mate: 2 },
+      after: { cp: 180, mate: null },
+    });
+    assert.equal(droppedIntoAMess.classification, "blunder");
+
+    const alreadyLost = assessMove({
+      color: "b",
+      playedUci: "a7a6",
+      bestUci: "g8f8",
+      before: { cp: 1200, mate: null },
+      after: { cp: 99_997, mate: 3 },
+    });
+    assert.equal(alreadyLost.classification, "inaccuracy");
+  });
+
+  it("treats a two-pawn swing in a won position as playable", () => {
+    const assessed = assessMove({
+      color: "w",
+      playedUci: "a2a3",
+      bestUci: "d1h5",
+      before: { cp: 1000, mate: null },
+      after: { cp: 800, mate: null },
+    });
+
+    assert.notEqual(assessed.classification, "blunder");
+    assert.notEqual(assessed.classification, "mistake");
   });
 
   it("marks a 150 centipawn swing as a mistake", () => {
@@ -102,17 +145,69 @@ describe("PGN and FEN", () => {
     assert.match(fen, /^rnbqkbnr\/pppppppp\/8\/8\/4P3\/8\/PPPP1PPP\/RNBQKBNR b KQkq/);
     assert.throws(() => parseFen("ceci n'est pas une fen"), /FEN/);
     assert.throws(() => parseFen(""), /FEN/);
+    assert.match(
+      parseFen("FEN: rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1"),
+      /4P3/,
+    );
+    assert.match(parseFen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq -"), / b /);
   });
 
-  it("keeps a clock comment and still reads the moves", () => {
+  it("keeps a human comment and drops clock tags", () => {
     const game = parsePgn(`[White "Hugo"]
 [Black "N"]
 [Result "*"]
 
-1. e4 {[%clk 0:05:00]} e5 2. Nf3 Nc6 *`);
+1. e4 {[%clk 0:05:00] Idée centrale} e5 2. Nf3 Nc6 *`);
 
     assert.equal(game.white, "Hugo");
     assert.equal(game.moves.map((move) => move.san).join(" "), "e4 e5 Nf3 Nc6");
+    assert.equal(game.moves[0]?.comment, "Idée centrale");
+    assert.equal(game.hasVariations, false);
+  });
+
+  it("keeps the main line of an annotated game and flags variations", () => {
+    const game = parsePgn(`1. e4 e5 (1... c5 2. Nf3 d6) 2. Nf3 Nc6 *`);
+
+    assert.equal(game.moves.map((move) => move.san).join(" "), "e4 e5 Nf3 Nc6");
+    assert.equal(game.hasVariations, true);
+  });
+
+  it("names the illegal move instead of a generic failure", () => {
+    assert.throws(() => parsePgn("1. e4 e5 2. Qh5 Ke7 3. Na6"), /Na6/);
+  });
+
+  it("reads every game in a multi-game paste", () => {
+    const collection = parsePgnCollection(`[White "Hugo"]
+[Black "N"]
+[Result "*"]
+
+1. e4 e5 *
+
+[Event "Second"]
+[White "A"]
+[Black "B"]
+[Result "1-0"]
+
+1. d4 d5 2. c4 1-0
+`);
+
+    assert.equal(collection.skipped, 0);
+    assert.equal(collection.games.length, 2);
+    assert.equal(collection.games[0]?.game.white, "Hugo");
+    assert.equal(collection.games[1]?.game.moves.map((move) => move.san).join(" "), "d4 d5 c4");
+  });
+
+  it("accepts a comment written after a variation", () => {
+    const game = parsePgn("1. e4 (1. d4 d5) {Idée centrale} e5 2. Nf3 *");
+
+    assert.equal(game.moves.map((move) => move.san).join(" "), "e4 e5 Nf3");
+    assert.equal(game.moves[0]?.comment, "Idée centrale");
+    assert.equal(game.hasVariations, true);
+  });
+
+  it("unwraps a fenced PGN", () => {
+    const game = parsePgn("```pgn\n1. e4 e5 2. Nf3 *\n```");
+    assert.equal(game.moves.map((move) => move.san).join(" "), "e4 e5 Nf3");
   });
 });
 

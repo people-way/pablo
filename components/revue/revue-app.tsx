@@ -6,11 +6,11 @@ import { Chess, type Square } from "chess.js";
 import { analyzeGame, ReviewCancelled } from "@/lib/review/analyze-game";
 import { classLabel, summarizePlayer, summaryText } from "@/lib/review/classify";
 import { ReviewEngine, type EngineSearch } from "@/lib/review/engine-client";
-import { parseFen, parsePgn, ReviewInputError, sanLine } from "@/lib/review/parse";
+import { parseFen, parsePgn, parsePgnCollection, ReviewInputError, sanLine } from "@/lib/review/parse";
 import { SAMPLE_PGN } from "@/lib/review/sample";
 import { formatCentipawnLoss, formatEval, sideToMove, toWhiteView } from "@/lib/review/scores";
 import { readSaved, removeSaved, upsertSaved } from "@/lib/review/storage";
-import type { MoveAnalysis, NodeEval, ParsedGame, SavedReview, Side } from "@/lib/review/types";
+import type { MoveAnalysis, NodeEval, ParsedGame, PgnDocument, SavedReview, Side } from "@/lib/review/types";
 import { ChessBoard } from "./board";
 import { classColor, EvalBar, EvalChart, MoveList } from "./widgets";
 
@@ -56,7 +56,7 @@ export function RevueApp() {
   const [ply, setPly] = useState(0);
   const [explore, setExplore] = useState<Explore | null>(null);
   const [orientation, setOrientation] = useState<Side>("w");
-  const [depth, setDepth] = useState(10);
+  const [depth, setDepth] = useState(16);
   const [analyses, setAnalyses] = useState<Array<MoveAnalysis | null>>([]);
   const [nodeEvals, setNodeEvals] = useState<Array<NodeEval | null>>([]);
   const [batch, setBatch] = useState<Batch | null>(null);
@@ -65,6 +65,9 @@ export function RevueApp() {
   const [savedId, setSavedId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [pgnChoices, setPgnChoices] = useState<PgnDocument[]>([]);
+  const boardAnchor = useRef<HTMLElement | null>(null);
+  const liveStamp = useRef(0);
 
   useEffect(() => {
     const engine = new ReviewEngine();
@@ -98,11 +101,11 @@ export function RevueApp() {
   }, []);
 
   const displayedFen = useMemo(() => viewFen(loaded, ply, explore), [loaded, ply, explore]);
-  const positionMode = explore != null || loaded.kind === "position";
   const game = loaded.kind === "game" ? loaded.game : null;
+  const liveEnabled = loaded.kind !== "idle" && !batch;
 
   useEffect(() => {
-    if (!engineReady || batch || !positionMode) {
+    if (!engineReady || !liveEnabled) {
       return;
     }
 
@@ -122,9 +125,18 @@ export function RevueApp() {
           multipv: 3,
           signal: controller.signal,
           onProgress: (partial) => {
-            if (!controller.signal.aborted) {
-              setLive({ fen, search: partial });
+            if (controller.signal.aborted) {
+              return;
             }
+
+            const now = performance.now();
+
+            if (now - liveStamp.current < 80 && partial.depth < depth) {
+              return;
+            }
+
+            liveStamp.current = now;
+            setLive({ fen, search: partial });
           },
         })
         .then((result) => {
@@ -143,7 +155,7 @@ export function RevueApp() {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [engineReady, batch, positionMode, displayedFen, depth]);
+  }, [engineReady, liveEnabled, displayedFen, depth]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -173,6 +185,9 @@ export function RevueApp() {
         event.preventDefault();
         exitExplore();
         setPly(game.moves.length);
+      } else if (event.key === "f" || event.key === "F") {
+        event.preventDefault();
+        setOrientation((side) => (side === "w" ? "b" : "w"));
       }
     }
 
@@ -214,6 +229,18 @@ export function RevueApp() {
     setLive(null);
   }
 
+  function revealBoard() {
+    const active = document.activeElement;
+
+    if (active instanceof HTMLElement && active !== document.body) {
+      active.blur();
+    }
+
+    window.requestAnimationFrame(() => {
+      boardAnchor.current?.scrollIntoView({ block: "start" });
+    });
+  }
+
   function openGame(pgn: string, viewer: Side | null) {
     batchAbort.current?.abort();
     const parsed = parsePgn(pgn);
@@ -226,6 +253,7 @@ export function RevueApp() {
     setOrientation(viewer ?? "w");
     setSavedId(null);
     setMessage(null);
+    revealBoard();
   }
 
   function openPosition(rawFen: string) {
@@ -240,9 +268,86 @@ export function RevueApp() {
     setSavedId(null);
     setOrientation(sideToMove(fen) === "b" ? "b" : "w");
     setMessage(null);
+    revealBoard();
+  }
+
+  function openPgn(raw: string, viewer: Side | null) {
+    const collection = parsePgnCollection(raw);
+
+    if (collection.games.length > 1) {
+      setPgnChoices(collection.games);
+      setMessage(
+        collection.skipped > 0
+          ? `${collection.games.length} parties lisibles, ${collection.skipped} ignorée${collection.skipped > 1 ? "s" : ""}. Choisis laquelle ouvrir.`
+          : `${collection.games.length} parties trouvées. Choisis laquelle ouvrir.`,
+      );
+      return;
+    }
+
+    setPgnChoices([]);
+    const only = collection.games[0];
+    openGame(only.pgn, viewer);
+    const notes: string[] = [];
+
+    if (only.game.hasVariations) {
+      notes.push("Ligne principale ouverte. Les variantes entre parenthèses ne sont pas rejouées.");
+    }
+
+    if (collection.skipped > 0) {
+      notes.push(
+        collection.skipped > 1
+          ? `${collection.skipped} parties illisibles ont été ignorées.`
+          : "Une partie illisible a été ignorée.",
+      );
+    }
+
+    if (notes.length > 0) {
+      setMessage(notes.join(" "));
+    }
+  }
+
+  function followLine(uciMoves: string[]) {
+    if (batch) {
+      return;
+    }
+
+    const fen = displayedFen;
+    const chess = new Chess(fen);
+    const played: ExploreMove[] = [];
+
+    for (const uci of uciMoves) {
+      try {
+        const move = chess.move({
+          from: uci.slice(0, 2),
+          to: uci.slice(2, 4),
+          promotion: uci[4],
+        });
+        played.push({ san: move.san, uci, fen: move.after });
+      } catch {
+        break;
+      }
+    }
+
+    if (played.length === 0) {
+      return;
+    }
+
+    setExplore((current) => {
+      const base = current ?? { rootFen: fen, moves: [], cursor: 0 };
+      const prefix = base.moves.slice(0, base.cursor);
+      return {
+        rootFen: base.rootFen,
+        moves: [...prefix, ...played],
+        cursor: prefix.length + 1,
+      };
+    });
   }
 
   function playUci(uci: string) {
+    if (batch) {
+      return;
+    }
+
     const fen = displayedFen;
     const chess = new Chess(fen);
 
@@ -404,7 +509,7 @@ export function RevueApp() {
         openGame(review.pgn, review.viewer);
         const parsed = parsePgn(review.pgn);
         setPly(Math.min(review.ply, parsed.moves.length));
-        setDepth(review.depth || 10);
+        setDepth(review.depth || 16);
         setAnalyses(
           review.analyses.length === parsed.moves.length
             ? review.analyses
@@ -418,7 +523,7 @@ export function RevueApp() {
         setSavedId(review.id);
       } else if (review.fen) {
         openPosition(review.fen);
-        setDepth(review.depth || 10);
+        setDepth(review.depth || 16);
         setSavedId(review.id);
       }
     } catch (error) {
@@ -439,7 +544,18 @@ export function RevueApp() {
   const blackSummary = summarizePlayer(doneMoves, "b");
   const currentAnalysis = game && !explore && ply > 0 ? analyses[ply - 1] : null;
   const currentLive = live?.fen === displayedFen ? live.search : null;
-  const barEval = positionMode ? liveEval(displayedFen, currentLive) : (nodeEvals[ply] ?? null);
+  const storedEval = game && !explore ? nodeEvals[ply] ?? null : null;
+  const barEval = liveEval(displayedFen, currentLive) ?? storedEval;
+  const hintUci =
+    currentLive?.lines[0]?.pvUci[0] ??
+    (!explore && game ? analyses[ply]?.bestUci ?? null : null);
+  const positionComment = explore
+    ? ""
+    : game
+      ? ply === 0
+        ? game.startComment
+        : game.moves[ply - 1]?.comment ?? ""
+      : "";
   const lastMove = lastSquares(loaded, ply, explore);
   const progress = batch ? Math.round((batch.done / batch.total) * 100) : 0;
 
@@ -499,7 +615,7 @@ export function RevueApp() {
               onSubmit={(event) => {
                 event.preventDefault();
                 try {
-                  openGame(pgnText, null);
+                  openPgn(pgnText, null);
                 } catch (error) {
                   setMessage(error instanceof ReviewInputError ? error.message : "PGN illisible.");
                 }
@@ -534,6 +650,33 @@ export function RevueApp() {
                   Partie exemple
                 </button>
               </div>
+              {pgnChoices.length > 1 ? (
+                <ul className="flex flex-col gap-2">
+                  {pgnChoices.map((choice, index) => (
+                    <li key={`${choice.game.white}-${choice.game.black}-${choice.game.date}-${index}`}>
+                      <button
+                        type="button"
+                        className="flex w-full min-h-11 flex-col rounded-lg px-3 py-2 text-left text-sm sm:flex-row sm:items-center sm:justify-between"
+                        style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)" }}
+                        onClick={() => {
+                          openGame(choice.pgn, null);
+                          if (choice.game.hasVariations) {
+                            setMessage("Ligne principale ouverte. Les variantes entre parenthèses ne sont pas rejouées.");
+                          }
+                        }}
+                      >
+                        <span>
+                          {choice.game.white} – {choice.game.black}
+                        </span>
+                        <span style={{ color: "var(--text-muted)" }}>
+                          {choice.game.result} · {choice.game.moves.length} coups
+                          {choice.game.date ? ` · ${choice.game.date}` : ""}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </form>
           ) : null}
 
@@ -631,21 +774,33 @@ export function RevueApp() {
                     className="flex flex-col gap-2 rounded-lg px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                     style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)" }}
                   >
-                    <button type="button" className="text-left text-sm" onClick={() => openSaved(review)}>
+                    <button type="button" className="min-h-11 text-left text-sm" onClick={() => openSaved(review)}>
                       <span className="font-semibold">{review.title}</span>
                       <span className="mt-1 block" style={{ color: "var(--text-muted)" }}>
-                        {review.result} · profondeur {review.depth} · {formatSaved(review.savedAt)}
+                        {review.result} · profondeur {review.depth}
+                        {analyzedCount(review) > 0 ? ` · ${analyzedCount(review)} coups analysés` : " · sans analyse"}
+                        {review.savedAt ? ` · ${formatSaved(review.savedAt)}` : ""}
                       </span>
                     </button>
                     {pendingDelete === review.id ? (
-                      <button
-                        type="button"
-                        className="min-h-11 rounded-lg px-3 text-sm font-semibold"
-                        style={{ color: "#e85555" }}
-                        onClick={() => deleteSaved(review.id)}
-                      >
-                        Confirmer la suppression
-                      </button>
+                      <span className="flex gap-2">
+                        <button
+                          type="button"
+                          className="min-h-11 rounded-lg px-3 text-sm font-semibold"
+                          style={{ color: "#e85555" }}
+                          onClick={() => deleteSaved(review.id)}
+                        >
+                          Confirmer
+                        </button>
+                        <button
+                          type="button"
+                          className="min-h-11 rounded-lg px-3 text-sm"
+                          style={{ color: "var(--text-secondary)" }}
+                          onClick={() => setPendingDelete(null)}
+                        >
+                          Annuler
+                        </button>
+                      </span>
                     ) : (
                       <button
                         type="button"
@@ -669,16 +824,20 @@ export function RevueApp() {
           </p>
         ) : null}
 
-        <section className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
-          <div className="flex flex-col gap-3">
-            <div className="flex gap-2">
-              <EvalBar evaluation={barEval} />
-              <ChessBoard
-                fen={displayedFen}
-                orientation={orientation}
-                lastMove={lastMove}
-                onPlay={playUci}
-              />
+        <section ref={boardAnchor} className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
+          <div className="flex min-w-0 flex-col gap-3">
+            <div className="flex min-w-0 gap-2">
+              <EvalBar evaluation={barEval} orientation={orientation} />
+              <div className="min-w-0 flex-1">
+                <ChessBoard
+                  fen={displayedFen}
+                  orientation={orientation}
+                  lastMove={lastMove}
+                  bestMove={batch ? null : hintUci}
+                  interactive={!batch}
+                  onPlay={playUci}
+                />
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <NavButton label="Début" onClick={() => { exitExplore(); setPly(0); }} />
@@ -707,7 +866,7 @@ export function RevueApp() {
               ) : null}
             </div>
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-              Flèches du clavier pour avancer. Clique une pièce, puis sa case, pour explorer.
+              Flèches pour avancer, F pour retourner. La flèche dorée est le coup conseillé. Clique une ligne pour la suivre.
             </p>
             {game && !explore ? <EvalChart evals={nodeEvals} ply={ply} onPick={(next) => { exitExplore(); setPly(next); }} /> : null}
           </div>
@@ -790,6 +949,11 @@ export function RevueApp() {
               <div className="space-y-1 text-sm">
                 <p>{summaryText(whiteSummary)}</p>
                 <p>{summaryText(blackSummary)}</p>
+                {doneMoves.length < game.moves.length ? (
+                  <p style={{ color: "var(--text-muted)" }}>
+                    Analyse partielle : {doneMoves.length}/{game.moves.length} coups.
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
@@ -806,7 +970,11 @@ export function RevueApp() {
               <div className="rounded-xl p-3 text-sm" style={{ background: "var(--bg-secondary)" }}>
                 <p className="font-semibold" style={{ color: classColor(currentAnalysis.classification) }}>
                   {classLabel(currentAnalysis.classification)}
-                  {currentAnalysis.cpLoss > 0 ? ` · ${formatCentipawnLoss(currentAnalysis.cpLoss)}` : ""}
+                  {mateSwingLabel(currentAnalysis)
+                    ? " · mat"
+                    : currentAnalysis.cpLoss > 0
+                      ? ` · ${formatCentipawnLoss(currentAnalysis.cpLoss)}`
+                      : ""}
                 </p>
                 <p className="mt-1" style={{ color: "var(--text-secondary)" }}>
                   Meilleur coup : {currentAnalysis.bestSan ?? "—"}
@@ -818,7 +986,13 @@ export function RevueApp() {
               </div>
             ) : null}
 
-            {positionMode ? (
+            {positionComment ? (
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                {positionComment}
+              </p>
+            ) : null}
+
+            {liveEnabled ? (
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
                   Lignes {currentLive ? `(profondeur ${currentLive.depth}/${depth})` : ""}
@@ -830,14 +1004,10 @@ export function RevueApp() {
                     <button
                       key={line.multipv}
                       type="button"
-                      className="block w-full rounded-lg px-3 py-2 text-left text-sm"
+                      className="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm"
+                      title="Suivre cette ligne"
                       style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)" }}
-                      onClick={() => {
-                        const first = line.pvUci[0];
-                        if (first) {
-                          playUci(first);
-                        }
-                      }}
+                      onClick={() => followLine(line.pvUci)}
                     >
                       <span className="font-semibold" style={{ color: "var(--gold-light)" }}>
                         {formatEval(white)}
@@ -865,11 +1035,11 @@ export function RevueApp() {
                   setPly(next);
                 }}
               />
-            ) : (
+            ) : loaded.kind === "idle" ? (
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                 Importe un PGN, un pseudo Chess.com, ou une FEN. Rien n&apos;est envoyé à un compte : l&apos;analyse reste dans le navigateur.
               </p>
-            )}
+            ) : null}
           </div>
         </section>
       </div>
@@ -981,6 +1151,18 @@ function formatSaved(iso: string) {
   }
 
   return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(date);
+}
+
+function mateSwingLabel(analysis: MoveAnalysis) {
+  if (analysis.classification === "best" || analysis.classification === "good" || analysis.classification === "ok") {
+    return false;
+  }
+
+  return analysis.before.mate != null || analysis.after.mate != null;
+}
+
+function analyzedCount(review: SavedReview) {
+  return review.analyses.filter((item) => item != null).length;
 }
 
 function isAbort(error: unknown) {

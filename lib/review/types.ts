@@ -47,6 +47,8 @@ export type ParsedMove = {
   color: Side;
   fenBefore: string;
   fenAfter: string;
+  /** Human annotation, without clock or engine tags. */
+  comment: string;
 };
 
 export type ParsedGame = {
@@ -57,7 +59,15 @@ export type ParsedGame = {
   event: string;
   opening: string;
   startFen: string;
+  startComment: string;
+  /** True when the PGN movetext contains a sideline. Only the main line is loaded. */
+  hasVariations: boolean;
   moves: ParsedMove[];
+};
+
+export type PgnDocument = {
+  pgn: string;
+  game: ParsedGame;
 };
 
 export type SavedReview = {
