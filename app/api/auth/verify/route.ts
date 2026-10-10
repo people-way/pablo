@@ -5,36 +5,48 @@ import {
   upsertUserByEmail,
   createSession,
   SESSION_COOKIE,
+  safeRedirectPath,
+  sessionCookieOptions,
 } from "@/lib/auth";
+import { accountsConfigured } from "@/lib/db";
 
 export const runtime = "nodejs";
-
-const SESSION_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  if (!accountsConfigured()) {
+    return NextResponse.redirect(new URL("/login?error=accounts", request.url));
+  }
+
   const token = request.nextUrl.searchParams.get("token");
-  const redirectTo = request.nextUrl.searchParams.get("redirect") || "/dashboard";
+  const redirectTo = safeRedirectPath(request.nextUrl.searchParams.get("redirect"));
 
   if (!token) {
     return NextResponse.redirect(new URL("/login?error=missing_token", request.url));
   }
 
-  const verified = await verifyMagicLinkToken(token);
+  let verified: { email: string } | null;
+  try {
+    verified = await verifyMagicLinkToken(token);
+  } catch (error) {
+    console.error("Magic link verification failed", error instanceof Error ? error.message : "");
+    return NextResponse.redirect(new URL("/login?error=storage", request.url));
+  }
+
   if (!verified) {
     return NextResponse.redirect(new URL("/login?error=invalid_token", request.url));
   }
 
-  const user = await upsertUserByEmail(verified.email);
-  const sessionToken = await createSession(user.id);
+  let sessionToken: string;
+  try {
+    const user = await upsertUserByEmail(verified.email);
+    sessionToken = await createSession(user.id);
+  } catch (error) {
+    console.error("Session creation failed", error instanceof Error ? error.message : "");
+    return NextResponse.redirect(new URL("/login?error=storage", request.url));
+  }
 
   const response = NextResponse.redirect(new URL(redirectTo, request.url));
-  response.cookies.set(SESSION_COOKIE, sessionToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: SESSION_MAX_AGE,
-    path: "/",
-  });
-
+  response.cookies.set(SESSION_COOKIE, sessionToken, sessionCookieOptions());
   return response;
 }

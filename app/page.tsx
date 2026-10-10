@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AccountLinks } from "@/components/account-nav";
 
 const PAYMENT_LINK = "https://buy.stripe.com/aFa3cwgu016v36q9gLeOs0Y";
 
@@ -67,7 +68,7 @@ export default function LandingPage() {
         WebkitBackdropFilter: "blur(16px)",
         borderBottom: "1px solid var(--border)"
       }}>
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 min-h-16 py-2 flex flex-wrap items-center justify-between gap-3">
           {/* Logo */}
           <div className="flex items-center gap-2.5">
             <svg viewBox="0 0 32 32" className="w-8 h-8" fill="none">
@@ -92,13 +93,16 @@ export default function LandingPage() {
             <a href="#pricing" className="transition-colors hover:text-amber-400">Pricing</a>
           </div>
 
-          <Link
-            href="/analyze"
-            className="btn-gold text-sm font-bold px-5 py-2.5 rounded-lg"
-            style={{ color: "#0a0b0c" }}
-          >
-            Try It Free
-          </Link>
+          <div className="flex items-center gap-3 sm:gap-5">
+            <AccountLinks />
+            <Link
+              href="/analyze"
+              className="btn-gold text-sm font-bold px-5 py-2.5 rounded-lg"
+              style={{ color: "#0a0b0c" }}
+            >
+              Try It Free
+            </Link>
+          </div>
         </div>
       </nav>
 

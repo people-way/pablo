@@ -18,6 +18,16 @@ type OpeningGroup = {
   dates: string[];
 };
 
+export type OpeningPlayed = {
+  opening: string;
+  color: GameColor;
+  winRate: number;
+  gameCount: number;
+  wins: number;
+  losses: number;
+  draws: number;
+};
+
 export type OpeningWeakness = {
   opening: string;
   color: GameColor;
@@ -35,6 +45,7 @@ export type OpeningsAnalysisResult = {
   draws: number;
   winRate: number;
   dateRange: { from: string; to: string } | null;
+  openings: OpeningPlayed[];
   weaknesses: OpeningWeakness[];
   summary: string;
   username: string;
@@ -115,36 +126,47 @@ function analyzeOpenings(games: ImportedChessComGame[], username: string): Openi
     if (g.date) grp.dates.push(g.date);
   }
 
-  // Find weaknesses: groups with enough games and low win rate
-  const weaknesses: OpeningWeakness[] = [];
-
+  const openings: OpeningPlayed[] = [];
   for (const grp of groups.values()) {
     const grpTotal = grp.wins + grp.losses + grp.draws;
-    if (grpTotal < MIN_GAMES_FOR_WEAKNESS) continue;
+    if (grpTotal < 1) continue;
+    openings.push({
+      opening: grp.opening,
+      color: grp.color,
+      winRate: Math.round((grp.wins / grpTotal) * 100),
+      gameCount: grpTotal,
+      wins: grp.wins,
+      losses: grp.losses,
+      draws: grp.draws,
+    });
+  }
+  openings.sort((a, b) => b.gameCount - a.gameCount || a.opening.localeCompare(b.opening));
 
-    const grpWinRate = Math.round((grp.wins / grpTotal) * 100);
+  // Weaknesses: enough games and a win rate under 50%.
+  const weaknesses: OpeningWeakness[] = [];
 
-    // Only flag openings with < 50% win rate as weaknesses
-    if (grpWinRate < 50) {
-      const catalogEntry = findCatalogOpening(null, grp.opening);
-      const { diagnosis, keyProblem, whatToDo } = generateDiagnosis(
-        grp.opening,
-        grp.color,
-        grpWinRate,
-        grpTotal,
-        catalogEntry,
-      );
+  for (const played of openings) {
+    if (played.gameCount < MIN_GAMES_FOR_WEAKNESS) continue;
+    if (played.winRate >= 50) continue;
 
-      weaknesses.push({
-        opening: grp.opening,
-        color: grp.color,
-        winRate: grpWinRate,
-        gameCount: grpTotal,
-        diagnosis,
-        keyProblem,
-        whatToDo,
-      });
-    }
+    const catalogEntry = findCatalogOpening(null, played.opening);
+    const { diagnosis, keyProblem, whatToDo } = generateDiagnosis(
+      played.opening,
+      played.color,
+      played.winRate,
+      played.gameCount,
+      catalogEntry,
+    );
+
+    weaknesses.push({
+      opening: played.opening,
+      color: played.color,
+      winRate: played.winRate,
+      gameCount: played.gameCount,
+      diagnosis,
+      keyProblem,
+      whatToDo,
+    });
   }
 
   // Sort by win rate ascending (worst first), then by game count descending
@@ -164,6 +186,7 @@ function analyzeOpenings(games: ImportedChessComGame[], username: string): Openi
     draws,
     winRate,
     dateRange,
+    openings,
     weaknesses: topWeaknesses,
     summary,
     username,

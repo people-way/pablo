@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { OpeningWeakness, OpeningsAnalysisResult } from "@/app/api/analyze/openings/route";
 import { sampleOpeningReport } from "@/app/analyze/sample-report";
+import { AccountNav } from "@/components/account-nav";
+import { requestMagicLink } from "@/lib/magic-link-client";
+import { ACCOUNTS_UNAVAILABLE_CODE } from "@/lib/accounts-copy";
+import { stashPendingAnalysis } from "@/lib/pending-analysis";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -57,13 +61,16 @@ function StepInput({
   onSubmit,
   onShowSample,
   apiError,
+  accountEmail = null,
 }: {
   initialUsername?: string;
   onSubmit: (username: string) => void;
   onShowSample: () => void;
   apiError?: string;
+  accountEmail?: string | null;
 }) {
-  const [value, setValue] = useState(initialUsername);
+  const [draft, setDraft] = useState<string | null>(null);
+  const value = draft ?? initialUsername;
   const [localError, setLocalError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -84,7 +91,7 @@ function StepInput({
 
   return (
     <div
-      className="chess-pattern min-h-screen flex items-center justify-center px-6 py-16"
+      className="chess-pattern min-h-screen flex items-center justify-center px-6 pt-24 pb-16"
       style={{ background: "var(--bg-primary)" }}
     >
       <div
@@ -138,6 +145,17 @@ function StepInput({
           Pablo reads your last 50 games and names up to three opening leaks.
           Free, and no account needed. No username yet? Open the sample report below.
         </p>
+        {accountEmail ? (
+          <p className="text-sm leading-6 -mt-4 mb-8" style={{ color: "var(--text-secondary)" }}>
+            Signed in as {accountEmail}.
+            {initialUsername
+              ? " Your Chess.com username is filled in from your account."
+              : " Save it on the dashboard and it will show up here."}{" "}
+            <Link href="/dashboard" className="underline" style={{ color: "var(--gold)" }}>
+              Edit it on the dashboard
+            </Link>
+          </p>
+        ) : null}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -156,7 +174,7 @@ function StepInput({
               type="text"
               value={value}
               onChange={(e) => {
-                setValue(e.target.value);
+                setDraft(e.target.value);
                 if (localError) setLocalError("");
               }}
               placeholder="hikaru"
@@ -266,7 +284,7 @@ function StepLoading() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-6 py-16"
+      className="min-h-screen flex items-center justify-center px-6 pt-24 pb-16"
       style={{ background: "var(--bg-primary)" }}
     >
       <div className="w-full max-w-md flex flex-col items-center gap-8">
@@ -740,28 +758,39 @@ function SaveGatePrompt({
 }) {
   const [email, setEmail] = useState("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [bypassLink, setBypassLink] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState("");
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = email.trim().toLowerCase();
     if (!trimmed || !trimmed.includes("@")) return;
     setSaveStatus("sending");
+    setErrorMsg("");
+    setBypassLink(null);
+    stashPendingAnalysis({ result: report, chessUsername: username });
     try {
-      // First send magic link (which creates the account)
-      const linkRes = await fetch("/api/auth/send-magic-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmed, redirect: "/dashboard" }),
-      });
-      if (linkRes.ok) {
-        setSaveStatus("sent");
-      } else {
+      const data = await requestMagicLink(trimmed, "/dashboard");
+      if (data.code === ACCOUNTS_UNAVAILABLE_CODE) {
+        setErrorMsg(data.error || "Compte bientôt disponible.");
         setSaveStatus("error");
+        return;
       }
+      if (data.ok && data.delivered === "bypass" && data.magicLink) {
+        setBypassLink(data.magicLink);
+        setSaveStatus("sent");
+        return;
+      }
+      if (data.ok) {
+        setSaveStatus("sent");
+        return;
+      }
+      setErrorMsg(data.error || "Something went wrong. Try again.");
+      setSaveStatus("error");
     } catch {
+      setErrorMsg("Couldn't reach the server. Check your connection.");
       setSaveStatus("error");
     }
-    void report; void username; // will be saved after login
   }
 
   if (saveStatus === "sent") {
@@ -773,11 +802,30 @@ function SaveGatePrompt({
           background: "linear-gradient(135deg, rgba(8,20,12,0.97) 0%, rgba(10,14,12,0.99) 100%)",
         }}
       >
-        <p className="text-sm font-bold" style={{ color: "#8ce0ac" }}>✓ Check your email</p>
-        <p className="text-sm leading-7" style={{ color: "var(--text-secondary)" }}>
-          Pablo sent a login link to <strong style={{ color: "var(--text-primary)" }}>{email}</strong>.
-          Click it to create your free account and save this report. Your progress will be waiting on your dashboard.
-        </p>
+        {bypassLink ? (
+          <>
+            <p className="text-sm font-bold" style={{ color: "#8ce0ac" }}>Login link ready</p>
+            <p className="text-sm leading-7" style={{ color: "var(--text-secondary)" }}>
+              Email can&apos;t be sent here. This one-time link works in development, or when{" "}
+              <code>PABLO_AUTH_BYPASS=1</code> is set.
+            </p>
+            <a
+              href={bypassLink}
+              className="btn-gold inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-bold"
+              style={{ color: "#0a0b0c" }}
+            >
+              Continue to your account
+            </a>
+          </>
+        ) : (
+          <>
+            <p className="text-sm font-bold" style={{ color: "#8ce0ac" }}>✓ Check your email</p>
+            <p className="text-sm leading-7" style={{ color: "var(--text-secondary)" }}>
+              Pablo sent a login link to <strong style={{ color: "var(--text-primary)" }}>{email}</strong>.
+              Open it in this browser and this report will land on your dashboard.
+            </p>
+          </>
+        )}
       </div>
     );
   }
@@ -874,7 +922,7 @@ function SaveGatePrompt({
       </form>
 
       {saveStatus === "error" && (
-        <p className="text-sm" style={{ color: "#ff9a9a" }}>Something went wrong. Try again.</p>
+        <p className="text-sm" style={{ color: "#ff9a9a" }}>{errorMsg || "Something went wrong. Try again."}</p>
       )}
 
       <p className="text-xs" style={{ color: "var(--text-muted)" }}>
@@ -1006,12 +1054,14 @@ function StepReport({
   report,
   username,
   sessionUser,
+  sessionLoaded,
   isSample,
   onReset,
 }: {
   report: OpeningsAnalysisResult;
   username: string;
   sessionUser: SessionUser;
+  sessionLoaded: boolean;
   isSample: boolean;
   onReset: () => void;
 }) {
@@ -1022,22 +1072,29 @@ function StepReport({
 
   // Auto-save for logged-in users. The sample is not their games.
   useEffect(() => {
-    if (!sessionUser || isSample) return;
+    if (!sessionLoaded || !sessionUser || isSample) return;
+    let cancelled = false;
     fetch("/api/analyses/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ result: report, chessUsername: username }),
+      body: JSON.stringify({ result: report, chessUsername: username, sample: false }),
     })
       .then((r) => {
+        if (cancelled) return;
         if (r.ok) setAutoSaved(true);
         else setAutoSaveError(true);
       })
-      .catch(() => setAutoSaveError(true));
-  }, [sessionUser, report, username, isSample]);
+      .catch(() => {
+        if (!cancelled) setAutoSaveError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionLoaded, sessionUser, report, username, isSample]);
 
   return (
     <main
-      className="min-h-screen px-5 py-10 sm:px-8 lg:px-12"
+      className="min-h-screen px-5 pt-24 pb-10 sm:px-8 lg:px-12"
       style={{ background: "var(--bg-primary)" }}
     >
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -1162,7 +1219,7 @@ function StepReport({
         </div>
 
         {/* Auto-save indicator (logged in users) */}
-        {sessionUser && (autoSaved || autoSaveError) && (
+        {!isSample && sessionUser && (autoSaved || autoSaveError) && (
           <div
             className="animate-fadeInUp rounded-2xl border px-5 py-4 flex items-center gap-3"
             style={{
@@ -1193,7 +1250,7 @@ function StepReport({
         )}
 
         {/* Gate prompt (anonymous users). Skip it on the sample. */}
-        {!sessionUser && !isSample && (
+        {sessionLoaded && !sessionUser && !isSample && (
           <div className="animate-fadeInUp" style={{ opacity: 0, animationDelay: "0.52s" }}>
             <SaveGatePrompt report={report} username={username} />
           </div>
@@ -1228,14 +1285,16 @@ function AnalyzePageInner() {
     sampleFromQuery ? sampleOpeningReport.username : usernameFromQuery,
   );
   const [errorMessage, setErrorMessage] = useState("");
-  const [sessionUser, setSessionUser] = useState<SessionUser>(undefined as unknown as SessionUser);
+  const [sessionUser, setSessionUser] = useState<SessionUser>(null);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
 
   // Check session on mount
   useEffect(() => {
     fetch("/api/auth/session")
       .then((r) => r.json())
       .then((d: { user: SessionUser }) => setSessionUser(d.user ?? null))
-      .catch(() => setSessionUser(null));
+      .catch(() => setSessionUser(null))
+      .finally(() => setSessionLoaded(true));
   }, []);
 
   // Keep a ref for min loading time — we want at least the full animation
@@ -1382,26 +1441,34 @@ function AnalyzePageInner() {
         report={report}
         username={username}
         sessionUser={sessionUser}
+        sessionLoaded={sessionLoaded}
         isSample={isSample}
         onReset={handleReset}
       />
     );
   }
 
+  const accountUsername = sessionUser?.chess_com_username?.trim() ?? "";
+  const prefill = username || accountUsername;
+
   return (
     <StepInput
-      initialUsername={username}
+      initialUsername={prefill}
       onSubmit={handleSubmit}
       onShowSample={showSample}
       apiError={errorMessage || undefined}
+      accountEmail={sessionUser?.email ?? null}
     />
   );
 }
 
 export default function AnalyzePage() {
   return (
-    <Suspense>
-      <AnalyzePageInner />
-    </Suspense>
+    <>
+      <AccountNav />
+      <Suspense>
+        <AnalyzePageInner />
+      </Suspense>
+    </>
   );
 }

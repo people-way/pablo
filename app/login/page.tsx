@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { AccountNav } from "@/components/account-nav";
+import { AccountsSoon } from "@/components/accounts-soon";
+import { ACCOUNTS_UNAVAILABLE_CODE } from "@/lib/accounts-copy";
+import { requestMagicLink } from "@/lib/magic-link-client";
 
 function queryErrorMessage(error: string | null) {
   if (error === "invalid_token") {
@@ -11,6 +15,9 @@ function queryErrorMessage(error: string | null) {
   }
   if (error === "missing_token") {
     return "Invalid login link. Enter your email below.";
+  }
+  if (error === "storage") {
+    return "Account storage is unavailable right now. Analysis and game review still work.";
   }
   return "";
 }
@@ -23,7 +30,27 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [formError, setFormError] = useState("");
+  const [bypassLink, setBypassLink] = useState<string | null>(null);
+  const [accountsAvailable, setAccountsAvailable] = useState<boolean | null>(
+    error === "accounts" ? false : null,
+  );
   const errorMsg = formError || queryErrorMessage(error);
+
+  useEffect(() => {
+    if (error === "accounts") return;
+    let cancelled = false;
+    fetch("/api/auth/session")
+      .then((response) => response.json())
+      .then((data: { accountsAvailable?: boolean }) => {
+        if (!cancelled) setAccountsAvailable(data.accountsAvailable !== false);
+      })
+      .catch(() => {
+        if (!cancelled) setAccountsAvailable(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [error]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,17 +60,22 @@ function LoginForm() {
       return;
     }
     setFormError("");
+    setBypassLink(null);
     setStatus("sending");
     try {
-      const res = await fetch("/api/auth/send-magic-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmed, redirect }),
-      });
-      if (!res.ok) {
-        setFormError("Something went wrong. Try again.");
+      const data = await requestMagicLink(trimmed, redirect);
+      if (data.code === ACCOUNTS_UNAVAILABLE_CODE) {
+        setAccountsAvailable(false);
+        setStatus("idle");
+        return;
+      }
+      if (!data.ok) {
+        setFormError(data.error || "Something went wrong. Try again.");
         setStatus("error");
         return;
+      }
+      if (data.delivered === "bypass" && data.magicLink) {
+        setBypassLink(data.magicLink);
       }
       setStatus("sent");
     } catch {
@@ -65,12 +97,29 @@ function LoginForm() {
           className="text-3xl font-bold mb-4"
           style={{ fontFamily: "var(--font-playfair), serif" }}
         >
-          Check your email
+          {bypassLink ? "Login link ready" : "Check your email"}
         </h2>
-        <p className="text-base leading-7 mb-6" style={{ color: "var(--text-secondary)" }}>
-          Pablo sent a login link to <strong style={{ color: "var(--text-primary)" }}>{email}</strong>.
-          Click the link in that email to log in. It expires in 15 minutes.
-        </p>
+        {bypassLink ? (
+          <>
+            <p className="text-base leading-7 mb-6" style={{ color: "var(--text-secondary)" }}>
+              Email can&apos;t be sent in this environment. This one-time link works in development,
+              or when <code>PABLO_AUTH_BYPASS=1</code> is set. It is not returned in production
+              without that flag.
+            </p>
+            <a
+              href={bypassLink}
+              className="btn-gold inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-bold mb-6"
+              style={{ color: "#0a0b0c" }}
+            >
+              Continue to your account
+            </a>
+          </>
+        ) : (
+          <p className="text-base leading-7 mb-6" style={{ color: "var(--text-secondary)" }}>
+            Pablo sent a login link to <strong style={{ color: "var(--text-primary)" }}>{email}</strong>.
+            Click the link in that email to log in. It expires in 15 minutes.
+          </p>
+        )}
         <button
           onClick={() => { setStatus("idle"); setEmail(""); }}
           className="text-sm underline"
@@ -78,6 +127,18 @@ function LoginForm() {
         >
           Use a different email
         </button>
+      </div>
+    );
+  }
+
+  if (accountsAvailable === false) {
+    return <AccountsSoon />;
+  }
+
+  if (accountsAvailable === null) {
+    return (
+      <div className="text-5xl" style={{ color: "var(--gold)" }} aria-hidden>
+        ♞
       </div>
     );
   }
@@ -131,6 +192,7 @@ function LoginForm() {
           value={email}
           onChange={(e) => { setEmail(e.target.value); setFormError(""); }}
           placeholder="you@example.com"
+          aria-label="Email"
           autoComplete="email"
           className="w-full rounded-2xl border px-5 py-4 text-base outline-none transition-all"
           style={{
@@ -174,6 +236,8 @@ function LoginForm() {
         </p>
         <p className="mt-3 text-xs text-center" style={{ color: "var(--text-muted)" }}>
           <Link href="/analyze" className="underline">Run a free analysis first →</Link>
+          {" · "}
+          <Link href="/revue" className="underline">Revue de partie →</Link>
         </p>
       </div>
     </div>
@@ -183,9 +247,10 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div
-      className="chess-pattern min-h-screen flex items-center justify-center px-6 py-16"
+      className="chess-pattern min-h-screen flex items-center justify-center px-6 pt-24 pb-16"
       style={{ background: "var(--bg-primary)" }}
     >
+      <AccountNav />
       <Suspense>
         <LoginForm />
       </Suspense>

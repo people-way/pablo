@@ -53,6 +53,35 @@ export const sampleOpeningReport: OpeningsAnalysisResult = {
         "Add one decision to the London before you play it again: meet ...c5 with c3, and know in advance whether e4 is the break or the center stays closed.",
     },
   ],
+  openings: [
+    {
+      opening: "Italian Game",
+      color: "white",
+      winRate: 22,
+      gameCount: 9,
+      wins: 2,
+      losses: 7,
+      draws: 0,
+    },
+    {
+      opening: "Sicilian Defense",
+      color: "black",
+      winRate: 29,
+      gameCount: 7,
+      wins: 2,
+      losses: 5,
+      draws: 0,
+    },
+    {
+      opening: "London System",
+      color: "white",
+      winRate: 40,
+      gameCount: 5,
+      wins: 2,
+      losses: 3,
+      draws: 0,
+    },
+  ],
   summary:
     "Twenty-four games, 38% wins. Two openings are doing most of the damage: the Italian as White at 22%, and the Sicilian as Black at 29%. The London is a slower leak. This is not a talent problem. It is the same missing plan, repeated. One focused week on the worst opening would move the scoreline. This sample is the free report — a Chess.com username gets the same read. — Pablo",
 };

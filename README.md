@@ -44,13 +44,18 @@ npm start
 
 ### Environment variables
 
-No environment variables are required for the MVP. The app is fully stateless.
+Game import, the sample demo (`/analyze?sample=1`), and `/revue` work without a database. Without `DATABASE_URL`, `/login` and `/dashboard` show “Compte bientôt disponible” instead of an error. Accounts, saved analyses, and the dashboard need Postgres.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| _(none)_ | — | No env vars needed for basic operation |
+| `DATABASE_URL` | For accounts | Postgres connection string. The app creates its tables on first use if they are missing. |
+| `DATABASE_SSL` | No | Set to `disable` for local Postgres without SSL. Remote databases use SSL by default. |
+| `NEXT_PUBLIC_BASE_URL` | Recommended in production | Public origin used inside emailed magic links. Falls back to the request origin. |
+| `PABLO_AUTH_BYPASS` | No | Set to `1` to return a one-time login link when email cannot be sent. Also on automatically when `NODE_ENV=development`. Never set this in production unless you intentionally want that bypass. |
 
-If you add a database or authentication later, set variables in the Vercel dashboard under **Settings → Environment Variables**.
+Magic-link email is sent with the NanoCorp CLI: `nanocorp emails send --to <email> --from pablo@nanocorp.app`. If that CLI is missing, login returns a clear error. In development, or with `PABLO_AUTH_BYPASS=1`, the API instead returns the login link so preview still works.
+
+Set variables in the Vercel dashboard under **Settings → Environment Variables**.
 
 ## Stripe payment link
 
