@@ -186,11 +186,11 @@ export default function LandingPage() {
           {/* CTAs */}
           <div className="animate-fadeInUp delay-300 flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
             <Link
-              href="/analyze"
+              href="/revue"
               className="btn-gold font-bold px-8 py-4 rounded-xl text-base w-full sm:w-auto"
               style={{ color: "#0a0b0c" }}
             >
-              See My Free Report
+              Revue de partie
             </Link>
             <Link
               href="/analyze?sample=1"
@@ -204,7 +204,7 @@ export default function LandingPage() {
           </div>
 
           <p className="animate-fadeInUp delay-350 mb-14 text-sm font-medium" style={{ color: "var(--text-muted)" }}>
-            No card up front. No checkout wall. Try the product experience first.
+            Outil principal : la revue coup par coup, Stockfish dans le navigateur, sans compte.
           </p>
 
           {/* Social proof */}
@@ -666,11 +666,11 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/analyze"
+              href="/revue"
               className="btn-gold inline-flex items-center gap-3 px-10 py-5 rounded-xl font-bold text-lg"
               style={{ color: "#0a0b0c" }}
             >
-              Get My Free Report
+              Revue de partie
               <span>→</span>
             </Link>
             <Link

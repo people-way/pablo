@@ -90,6 +90,7 @@ export async function analyzeGame(input: {
           bestUci: previous.bestUci,
           bestSan: bestSan || null,
           pvSan: sanLine(move.fenBefore, previous.pvUci),
+          pvUci: previous.pvUci,
           before,
           after,
         };

@@ -23,6 +23,8 @@ export type MoveAnalysis = {
   bestUci: string | null;
   bestSan: string | null;
   pvSan: string;
+  /** Principal variation from the position before the move. Absent on older saves. */
+  pvUci?: string[];
   before: NodeEval;
   after: NodeEval;
 };
