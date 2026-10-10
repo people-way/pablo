@@ -1,11 +1,17 @@
 import type { NextRequest } from "next/server";
 import { getCurrentUser, normalizeChessComUsername, updateChessUsername } from "@/lib/auth";
+import { accountsUnavailableResponse } from "@/lib/accounts-response";
+import { accountsConfigured } from "@/lib/db";
 import { isSampleUsername } from "@/lib/sample-games";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function PATCH(request: NextRequest) {
+  if (!accountsConfigured()) {
+    return accountsUnavailableResponse();
+  }
+
   let user;
   try {
     user = await getCurrentUser();

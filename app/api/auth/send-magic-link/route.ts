@@ -5,6 +5,8 @@ import {
   isAuthBypassEnabled,
   safeRedirectPath,
 } from "@/lib/auth";
+import { accountsUnavailableResponse } from "@/lib/accounts-response";
+import { accountsConfigured } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,6 +71,10 @@ function trySendEmail(to: string, subject: string, body: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  if (!accountsConfigured()) {
+    return accountsUnavailableResponse();
+  }
+
   let body: { email?: unknown; redirect?: unknown };
   try {
     body = await request.json();

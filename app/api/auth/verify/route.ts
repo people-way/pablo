@@ -8,11 +8,16 @@ import {
   safeRedirectPath,
   sessionCookieOptions,
 } from "@/lib/auth";
+import { accountsConfigured } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  if (!accountsConfigured()) {
+    return NextResponse.redirect(new URL("/login?error=accounts", request.url));
+  }
+
   const token = request.nextUrl.searchParams.get("token");
   const redirectTo = safeRedirectPath(request.nextUrl.searchParams.get("redirect"));
 

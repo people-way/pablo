@@ -4,6 +4,11 @@ import { SCHEMA_SQL } from "./schema";
 let pool: Pool | null = null;
 let schemaPromise: Promise<void> | null = null;
 
+/** Account routes must call this before touching Postgres. */
+export function accountsConfigured(): boolean {
+  return Boolean(process.env.DATABASE_URL?.trim());
+}
+
 function sslConfig(connectionString: string): PoolConfig["ssl"] {
   if (process.env.DATABASE_SSL === "disable") return undefined;
   if (process.env.DATABASE_SSL === "require") return { rejectUnauthorized: false };

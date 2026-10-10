@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { DashboardData, OpeningCard } from "@/app/api/dashboard/route";
 import { flushPendingAnalysis } from "@/lib/pending-analysis";
+import { AccountNav } from "@/components/account-nav";
+import { AccountsSoon } from "@/components/accounts-soon";
+import { ACCOUNTS_UNAVAILABLE_CODE } from "@/lib/accounts-copy";
 
 // ─── Sparkline component ──────────────────────────────────────────────────────
 
@@ -437,22 +440,42 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [accountsSoon, setAccountsSoon] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        await flushPendingAnalysis();
         const response = await fetch("/api/dashboard");
+        const payload = (await response.json()) as DashboardData & {
+          error?: string;
+          code?: string;
+          accountsAvailable?: boolean;
+        };
+        if (
+          payload.accountsAvailable === false ||
+          payload.code === ACCOUNTS_UNAVAILABLE_CODE
+        ) {
+          if (!cancelled) setAccountsSoon(true);
+          return;
+        }
         if (response.status === 401) {
           window.location.href = "/login?redirect=/dashboard";
           return;
         }
-        const payload = (await response.json()) as DashboardData & { error?: string };
         if (!response.ok) {
           throw new Error(payload.error || "Couldn't load your dashboard.");
         }
-        if (!cancelled) setData(payload);
+        const flushed = await flushPendingAnalysis();
+        if (cancelled) return;
+        if (flushed === "saved") {
+          const again = await fetch("/api/dashboard");
+          const fresh = (await again.json()) as DashboardData;
+          if (again.ok) setData(fresh);
+          else setData(payload);
+        } else {
+          setData(payload);
+        }
       } catch (loadError) {
         if (!cancelled) {
           setError(
@@ -490,6 +513,18 @@ export default function DashboardPage() {
         >
           ♞
         </div>
+      </div>
+    );
+  }
+
+  if (accountsSoon) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center px-6 pt-24"
+        style={{ background: "var(--bg-primary)" }}
+      >
+        <AccountNav />
+        <AccountsSoon />
       </div>
     );
   }
@@ -554,6 +589,9 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="flex items-center gap-3">
+            <Link href="/revue" className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              Revue
+            </Link>
             <Link
               href="/analyze"
               className="btn-gold rounded-xl px-5 py-2.5 text-sm font-bold"

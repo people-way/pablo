@@ -1,10 +1,11 @@
 import type { ImportedChessComGame } from "@/lib/chess-com";
 
-/** Reserved handle. Analyses under this name are never written to account stats. */
+/** Reserved handles. Analyses under these names are never written to account stats. */
 export const SAMPLE_USERNAME = "pablo-sample";
+const RESERVED_SAMPLE_USERNAMES = new Set([SAMPLE_USERNAME, "sample"]);
 
 export function isSampleUsername(value: string): boolean {
-  return value.trim().toLowerCase() === SAMPLE_USERNAME;
+  return RESERVED_SAMPLE_USERNAMES.has(value.trim().toLowerCase());
 }
 
 type SampleSpec = {

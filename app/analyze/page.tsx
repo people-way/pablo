@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { OpeningWeakness, OpeningsAnalysisResult } from "@/app/api/analyze/openings/route";
+import { sampleOpeningReport } from "@/app/analyze/sample-report";
 import { AccountNav } from "@/components/account-nav";
 import { requestMagicLink } from "@/lib/magic-link-client";
+import { ACCOUNTS_UNAVAILABLE_CODE } from "@/lib/accounts-copy";
 import { stashPendingAnalysis } from "@/lib/pending-analysis";
-import { SAMPLE_GAMES, SAMPLE_USERNAME } from "@/lib/sample-games";
-import type { ImportedChessComGame } from "@/lib/chess-com";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -58,15 +57,17 @@ function winRateColor(rate: number) {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StepInput({
+  initialUsername = "",
   onSubmit,
+  onShowSample,
   apiError,
-  initialUsername,
-  accountEmail,
+  accountEmail = null,
 }: {
+  initialUsername?: string;
   onSubmit: (username: string) => void;
+  onShowSample: () => void;
   apiError?: string;
-  initialUsername: string;
-  accountEmail: string | null;
+  accountEmail?: string | null;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   const value = draft ?? initialUsername;
@@ -137,39 +138,53 @@ function StepInput({
           Enter your Chess.com username
         </h1>
         <p
+          id="analyze-help"
           className="text-base leading-7 mb-8"
           style={{ color: "var(--text-secondary)" }}
         >
-          Pablo will analyze your last 50 games for free — no account needed.
+          Pablo reads your last 50 games and names up to three opening leaks.
+          Free, and no account needed. No username yet? Open the sample report below.
         </p>
-        {accountEmail && (
-          <p className="text-sm leading-6 mb-6" style={{ color: "var(--text-secondary)" }}>
+        {accountEmail ? (
+          <p className="text-sm leading-6 -mt-4 mb-8" style={{ color: "var(--text-secondary)" }}>
             Signed in as {accountEmail}.
             {initialUsername
               ? " Your Chess.com username is filled in from your account."
-              : " Add your Chess.com username on the dashboard and it will show up here."}{" "}
+              : " Save it on the dashboard and it will show up here."}{" "}
             <Link href="/dashboard" className="underline" style={{ color: "var(--gold)" }}>
               Edit it on the dashboard
             </Link>
           </p>
-        )}
+        ) : null}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
+            <label
+              htmlFor="chess-com-username"
+              className="text-xs font-bold tracking-[0.24em] uppercase"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Chess.com username
+            </label>
             <input
               ref={inputRef}
+              id="chess-com-username"
+              name="username"
               type="text"
               value={value}
               onChange={(e) => {
                 setDraft(e.target.value);
                 if (localError) setLocalError("");
               }}
-              aria-label="Chess.com username"
               placeholder="hikaru"
               autoComplete="off"
               autoCapitalize="none"
+              autoCorrect="off"
               spellCheck={false}
+              enterKeyHint="go"
+              aria-invalid={localError ? true : undefined}
+              aria-describedby={localError ? "username-error" : "analyze-help"}
               className="w-full rounded-2xl border px-5 py-4 text-xl outline-none transition-all"
               style={{
                 borderColor: localError
@@ -194,7 +209,7 @@ function StepInput({
               }}
             />
             {localError && (
-              <p className="text-sm" style={{ color: "#ff9a9a" }}>
+              <p id="username-error" role="alert" className="text-sm" style={{ color: "#ff9a9a" }}>
                 {localError}
               </p>
             )}
@@ -209,9 +224,23 @@ function StepInput({
           </button>
         </form>
 
+        <button
+          type="button"
+          onClick={onShowSample}
+          className="mt-4 w-full min-h-11 rounded-2xl border px-5 py-3 text-sm font-bold transition-colors"
+          style={{
+            borderColor: "rgba(201,168,76,0.28)",
+            color: "var(--gold-light)",
+            background: "rgba(201,168,76,0.06)",
+          }}
+        >
+          Open the sample report
+        </button>
+
         {/* API error */}
         {apiError && (
           <div
+            role="alert"
             className="mt-4 rounded-2xl border p-4"
             style={{
               borderColor: "rgba(224,97,97,0.28)",
@@ -235,7 +264,7 @@ function StepInput({
           className="mt-6 text-center text-sm"
           style={{ color: "var(--text-muted)" }}
         >
-          Uses the public Chess.com API · No signup required
+          Uses the public Chess.com API · Sample report stays on this device
         </p>
       </div>
     </div>
@@ -435,9 +464,11 @@ function StatCard({ report }: { report: OpeningsAnalysisResult }) {
 function WeaknessCard({
   weakness,
   rank,
+  isSample = false,
 }: {
   weakness: OpeningWeakness;
   rank: number;
+  isSample?: boolean;
 }) {
   const colorLabel = weakness.color === "white" ? "as White" : "as Black";
   const badgeColor =
@@ -577,40 +608,42 @@ function WeaknessCard({
         </p>
       </div>
 
-      {/* Teaser CTA */}
-      <div
-        className="flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
-        style={{
-          borderColor: "rgba(201,168,76,0.15)",
-          background: "rgba(201,168,76,0.05)",
-        }}
-      >
-        <p
-          className="text-sm"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          Pablo has a full prep plan for this.
-        </p>
-        <Link
-          href="/upgrade"
-          className="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap"
+      {/* Teaser CTA — hidden on the sample so the demo does not ask for payment */}
+      {isSample ? null : (
+        <div
+          className="flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
           style={{
-            borderColor: "rgba(201,168,76,0.3)",
-            color: "var(--gold-light)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "var(--gold)";
-            e.currentTarget.style.background = "rgba(201,168,76,0.1)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "rgba(201,168,76,0.3)";
-            e.currentTarget.style.background = "";
+            borderColor: "rgba(201,168,76,0.15)",
+            background: "rgba(201,168,76,0.05)",
           }}
         >
-          Upgrade to Pro
-          <span>→</span>
-        </Link>
-      </div>
+          <p
+            className="text-sm"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Pablo has a full prep plan for this.
+          </p>
+          <Link
+            href="/upgrade"
+            className="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap"
+            style={{
+              borderColor: "rgba(201,168,76,0.3)",
+              color: "var(--gold-light)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "var(--gold)";
+              e.currentTarget.style.background = "rgba(201,168,76,0.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "rgba(201,168,76,0.3)";
+              e.currentTarget.style.background = "";
+            }}
+          >
+            Upgrade to Pro
+            <span>→</span>
+          </Link>
+        </div>
+      )}
     </article>
   );
 }
@@ -738,6 +771,11 @@ function SaveGatePrompt({
     stashPendingAnalysis({ result: report, chessUsername: username });
     try {
       const data = await requestMagicLink(trimmed, "/dashboard");
+      if (data.code === ACCOUNTS_UNAVAILABLE_CODE) {
+        setErrorMsg(data.error || "Compte bientôt disponible.");
+        setSaveStatus("error");
+        return;
+      }
       if (data.ok && data.delivered === "bypass" && data.magicLink) {
         setBypassLink(data.magicLink);
         setSaveStatus("sent");
@@ -766,13 +804,10 @@ function SaveGatePrompt({
       >
         {bypassLink ? (
           <>
-            <p className="text-sm font-bold" style={{ color: "#8ce0ac" }}>
-              Email isn&apos;t available here
-            </p>
+            <p className="text-sm font-bold" style={{ color: "#8ce0ac" }}>Login link ready</p>
             <p className="text-sm leading-7" style={{ color: "var(--text-secondary)" }}>
-              This preview can&apos;t send mail. Use the one-time login link below — it only appears
-              in development, or when <code>PABLO_AUTH_BYPASS=1</code>. Your report is waiting to
-              be saved once you&apos;re in.
+              Email can&apos;t be sent here. This one-time link works in development, or when{" "}
+              <code>PABLO_AUTH_BYPASS=1</code> is set.
             </p>
             <a
               href={bypassLink}
@@ -787,7 +822,7 @@ function SaveGatePrompt({
             <p className="text-sm font-bold" style={{ color: "#8ce0ac" }}>✓ Check your email</p>
             <p className="text-sm leading-7" style={{ color: "var(--text-secondary)" }}>
               Pablo sent a login link to <strong style={{ color: "var(--text-primary)" }}>{email}</strong>.
-              Open it in this browser and the report will land on your dashboard.
+              Open it in this browser and this report will land on your dashboard.
             </p>
           </>
         )}
@@ -899,7 +934,65 @@ function SaveGatePrompt({
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-function UpgradeCTA({ worstOpening }: { worstOpening: string | null }) {
+function UpgradeCTA({
+  worstOpening,
+  isSample = false,
+  onUseOwnGames,
+}: {
+  worstOpening: string | null;
+  isSample?: boolean;
+  onUseOwnGames?: () => void;
+}) {
+  if (isSample) {
+    return (
+      <div
+        className="rounded-[1.75rem] border p-8 sm:p-10 flex flex-col items-center text-center gap-5"
+        style={{
+          borderColor: "rgba(201,168,76,0.25)",
+          background:
+            "linear-gradient(160deg, rgba(28,22,8,0.98) 0%, rgba(12,14,18,0.99) 100%)",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.5)",
+        }}
+      >
+        <p
+          className="text-xs font-bold tracking-[0.35em] uppercase"
+          style={{ color: "var(--gold)" }}
+        >
+          Your turn
+        </p>
+        <h2
+          className="text-3xl font-bold sm:text-4xl max-w-lg"
+          style={{ fontFamily: "var(--font-playfair), serif" }}
+        >
+          That was the sample. Your games are still free.
+        </h2>
+        <p
+          className="text-base leading-7 max-w-md"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          Enter a Chess.com username and Pablo will read your last 50 games the
+          same way. Pro is for the prep plan, after you have seen your own report.
+        </p>
+        <button
+          type="button"
+          onClick={onUseOwnGames}
+          className="btn-gold mt-2 inline-flex items-center gap-2 rounded-2xl px-8 py-4 text-base font-bold"
+          style={{ color: "#0a0b0c" }}
+        >
+          Analyze my games
+          <span>→</span>
+        </button>
+        <Link
+          href="/upgrade"
+          className="text-sm font-medium underline-offset-4 hover:underline"
+          style={{ color: "var(--text-muted)" }}
+        >
+          See what Pro adds
+        </Link>
+      </div>
+    );
+  }
+
   const label = worstOpening
     ? `Ready to fix your ${worstOpening} for good?`
     : "Ready to take your openings to the next level?";
@@ -962,14 +1055,14 @@ function StepReport({
   username,
   sessionUser,
   sessionLoaded,
-  persist,
+  isSample,
   onReset,
 }: {
   report: OpeningsAnalysisResult;
   username: string;
   sessionUser: SessionUser;
   sessionLoaded: boolean;
-  persist: boolean;
+  isSample: boolean;
   onReset: () => void;
 }) {
   const worstOpening =
@@ -977,9 +1070,9 @@ function StepReport({
   const [autoSaved, setAutoSaved] = useState(false);
   const [autoSaveError, setAutoSaveError] = useState(false);
 
-  // Auto-save for logged-in users. Sample reports never persist.
+  // Auto-save for logged-in users. The sample is not their games.
   useEffect(() => {
-    if (!persist || !sessionLoaded || !sessionUser) return;
+    if (!sessionLoaded || !sessionUser || isSample) return;
     let cancelled = false;
     fetch("/api/analyses/save", {
       method: "POST",
@@ -997,7 +1090,7 @@ function StepReport({
     return () => {
       cancelled = true;
     };
-  }, [persist, sessionLoaded, sessionUser, report, username]);
+  }, [sessionLoaded, sessionUser, report, username, isSample]);
 
   return (
     <main
@@ -1017,6 +1110,7 @@ function StepReport({
             </span>
           </div>
           <button
+            type="button"
             onClick={onReset}
             className="rounded-full border px-4 py-2 text-sm font-medium transition-colors"
             style={{
@@ -1032,9 +1126,32 @@ function StepReport({
               e.currentTarget.style.color = "var(--text-secondary)";
             }}
           >
-            Analyze another player
+            {isSample ? "Use my username" : "Analyze another player"}
           </button>
         </div>
+
+        {isSample && (
+          <div
+            role="status"
+            className="rounded-[1.75rem] border p-5 sm:p-6"
+            style={{
+              borderColor: "rgba(201,168,76,0.28)",
+              background: "rgba(201,168,76,0.08)",
+            }}
+          >
+            <p
+              className="text-xs font-bold tracking-[0.3em] uppercase mb-2"
+              style={{ color: "var(--gold)" }}
+            >
+              Sample report
+            </p>
+            <p className="text-sm leading-7" style={{ color: "var(--text-secondary)" }}>
+              This is a club player&apos;s last 24 games, so you can see the free
+              report before typing anything. Nothing here is your account, and
+              Pablo does not save it.
+            </p>
+          </div>
+        )}
 
         {/* Headline */}
         <div className="animate-fadeInUp" style={{ opacity: 0, animationDelay: "0.05s" }}>
@@ -1048,7 +1165,7 @@ function StepReport({
             className="text-3xl font-bold sm:text-4xl"
             style={{ fontFamily: "var(--font-playfair), serif" }}
           >
-            {username}&apos;s Opening Profile
+            {isSample ? "Sample opening profile" : `${username}'s Opening Profile`}
           </h1>
         </div>
 
@@ -1072,7 +1189,7 @@ function StepReport({
                 className="animate-fadeInUp"
                 style={{ opacity: 0, animationDelay: `${0.25 + i * 0.1}s` }}
               >
-                <WeaknessCard weakness={w} rank={i} />
+                <WeaknessCard weakness={w} rank={i} isSample={isSample} />
               </div>
             ))}
           </div>
@@ -1101,23 +1218,8 @@ function StepReport({
           <PabloSummaryCard summary={report.summary} />
         </div>
 
-        {!persist && (
-          <div
-            className="rounded-2xl border px-5 py-4"
-            style={{
-              borderColor: "rgba(201,168,76,0.2)",
-              background: "rgba(201,168,76,0.06)",
-            }}
-          >
-            <p className="text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
-              This is Pablo&apos;s sample report. It is not saved to your account, even if you&apos;re
-              signed in. Analyze your own Chess.com username to start tracking.
-            </p>
-          </div>
-        )}
-
         {/* Auto-save indicator (logged in users) */}
-        {persist && sessionUser && (autoSaved || autoSaveError) && (
+        {!isSample && sessionUser && (autoSaved || autoSaveError) && (
           <div
             className="animate-fadeInUp rounded-2xl border px-5 py-4 flex items-center gap-3"
             style={{
@@ -1147,8 +1249,8 @@ function StepReport({
           </div>
         )}
 
-        {/* Gate prompt (anonymous users) */}
-        {persist && sessionLoaded && !sessionUser && (
+        {/* Gate prompt (anonymous users). Skip it on the sample. */}
+        {sessionLoaded && !sessionUser && !isSample && (
           <div className="animate-fadeInUp" style={{ opacity: 0, animationDelay: "0.52s" }}>
             <SaveGatePrompt report={report} username={username} />
           </div>
@@ -1156,7 +1258,11 @@ function StepReport({
 
         {/* Upgrade CTA */}
         <div className="animate-fadeInUp" style={{ opacity: 0, animationDelay: "0.62s" }}>
-          <UpgradeCTA worstOpening={worstOpening} />
+          <UpgradeCTA
+            worstOpening={worstOpening}
+            isSample={isSample}
+            onUseOwnGames={onReset}
+          />
         </div>
       </div>
     </main>
@@ -1167,16 +1273,20 @@ function StepReport({
 
 function AnalyzePageInner() {
   const searchParams = useSearchParams();
-  const queryUsername = searchParams.get("username") ?? "";
-  const wantsSample = searchParams.get("sample") === "1";
-  const [step, setStep] = useState<Step>(wantsSample ? "loading" : "input");
-  const [report, setReport] = useState<OpeningsAnalysisResult | null>(null);
-  const [username, setUsername] = useState(queryUsername);
+  const router = useRouter();
+  const sampleFromQuery = searchParams.get("sample") === "1";
+  const usernameFromQuery = searchParams.get("username")?.trim() ?? "";
+  const [step, setStep] = useState<Step>(sampleFromQuery ? "report" : "input");
+  const [report, setReport] = useState<OpeningsAnalysisResult | null>(
+    sampleFromQuery ? sampleOpeningReport : null,
+  );
+  const [isSample, setIsSample] = useState(sampleFromQuery);
+  const [username, setUsername] = useState(
+    sampleFromQuery ? sampleOpeningReport.username : usernameFromQuery,
+  );
   const [errorMessage, setErrorMessage] = useState("");
   const [sessionUser, setSessionUser] = useState<SessionUser>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);
-  const [sampleRun, setSampleRun] = useState(wantsSample);
-  const sampleStarted = useRef(false);
 
   // Check session on mount
   useEffect(() => {
@@ -1195,20 +1305,36 @@ function AnalyzePageInner() {
   const finishLoading = useCallback(() => {
     if (analysisErrorRef.current) {
       setErrorMessage(analysisErrorRef.current);
+      setIsSample(false);
       setStep("input");
     } else if (analysisReadyRef.current) {
+      setIsSample(false);
       setReport(analysisReadyRef.current);
       setStep("report");
     }
   }, []);
 
-  const runAnalysis = useCallback(async (
-    user: string,
-    options?: { sample?: boolean; games?: ImportedChessComGame[] },
-  ) => {
-    const sample = Boolean(options?.sample);
-    setSampleRun(sample);
-    setUsername(sample ? "Sample" : user);
+  function showSample() {
+    if (minLoadTimeRef.current) clearTimeout(minLoadTimeRef.current);
+    analysisReadyRef.current = null;
+    analysisErrorRef.current = null;
+    setErrorMessage("");
+    setIsSample(true);
+    setReport(sampleOpeningReport);
+    setUsername(sampleOpeningReport.username);
+    setStep("report");
+    const preset = searchParams.get("username")?.trim() ?? "";
+    router.replace(
+      preset
+        ? `/analyze?sample=1&username=${encodeURIComponent(preset)}`
+        : "/analyze?sample=1",
+      { scroll: false },
+    );
+  }
+
+  async function handleSubmit(user: string) {
+    setUsername(user);
+    setIsSample(false);
     setErrorMessage("");
     analysisReadyRef.current = null;
     analysisErrorRef.current = null;
@@ -1229,45 +1355,39 @@ function AnalyzePageInner() {
     }, minMs);
 
     try {
-      let games: ImportedChessComGame[] | ImportApiResponse["games"] | undefined =
-        options?.games;
+      // Step A: import games
+      const importRes = await fetch(
+        `/api/import/chess-com?username=${encodeURIComponent(user)}`,
+      );
+      const importData = (await importRes.json()) as ImportApiResponse;
 
-      if (!games) {
-        const importRes = await fetch(
-          `/api/import/chess-com?username=${encodeURIComponent(user)}`,
-        );
-        const importData = (await importRes.json()) as ImportApiResponse;
-
-        if (!importRes.ok || importData.error) {
-          const code = importData.error?.code;
-          if (code === "not_found" || importRes.status === 404) {
-            analysisErrorRef.current = `I couldn't find a Chess.com account for "${user}". Double-check the spelling — Chess.com usernames are case-sensitive.`;
-          } else {
-            analysisErrorRef.current =
-              importData.error?.message ??
-              "Chess.com didn't respond the way I expected. Try again in a moment.";
-          }
-          analysisSettled = true;
-          tryFinish();
-          return;
+      if (!importRes.ok || importData.error) {
+        const code = importData.error?.code;
+        if (code === "not_found" || importRes.status === 404) {
+          analysisErrorRef.current = `I couldn't find a Chess.com account for "${user}". Double-check the spelling — Chess.com usernames are case-sensitive.`;
+        } else {
+          analysisErrorRef.current =
+            importData.error?.message ??
+            "Chess.com didn't respond the way I expected. Try again in a moment.";
         }
-
-        games = importData.games;
-        if (!games || games.length === 0) {
-          analysisErrorRef.current = `I found your Chess.com account, but there are no recent games to analyze. Play a few games and come back.`;
-          analysisSettled = true;
-          tryFinish();
-          return;
-        }
+        analysisSettled = true;
+        tryFinish();
+        return;
       }
 
+      const games = importData.games;
+      if (!games || games.length === 0) {
+        analysisErrorRef.current = `I found your Chess.com account, but there are no recent games to analyze. Play a few games and come back.`;
+        analysisSettled = true;
+        tryFinish();
+        return;
+      }
+
+      // Step B: analyze openings
       const analyzeRes = await fetch("/api/analyze/openings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          games,
-          username: sample ? SAMPLE_USERNAME : user,
-        }),
+        body: JSON.stringify({ games, username: user }),
       });
       const analyzeData = (await analyzeRes.json()) as
         | OpeningsAnalysisResult
@@ -1291,29 +1411,25 @@ function AnalyzePageInner() {
       analysisSettled = true;
       tryFinish();
     }
-  }, [finishLoading]);
-
-  useEffect(() => {
-    if (!wantsSample || sampleStarted.current) return;
-    sampleStarted.current = true;
-    const timer = window.setTimeout(() => {
-      void runAnalysis(SAMPLE_USERNAME, { sample: true, games: SAMPLE_GAMES });
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [wantsSample, runAnalysis]);
+  }
 
   function handleReset() {
     if (minLoadTimeRef.current) clearTimeout(minLoadTimeRef.current);
-    setSampleRun(false);
+    const preset = searchParams.get("username")?.trim() ?? "";
     setStep("input");
     setReport(null);
+    setIsSample(false);
     setErrorMessage("");
-    setUsername(queryUsername || sessionUser?.chess_com_username || "");
+    setUsername(isSample ? preset : "");
     analysisReadyRef.current = null;
     analysisErrorRef.current = null;
+    router.replace(
+      isSample && preset
+        ? `/analyze?username=${encodeURIComponent(preset)}`
+        : "/analyze",
+      { scroll: false },
+    );
   }
-
-  const prefill = queryUsername || sessionUser?.chess_com_username || "";
 
   if (step === "loading") {
     return <StepLoading />;
@@ -1326,19 +1442,21 @@ function AnalyzePageInner() {
         username={username}
         sessionUser={sessionUser}
         sessionLoaded={sessionLoaded}
-        persist={!sampleRun}
+        isSample={isSample}
         onReset={handleReset}
       />
     );
   }
 
+  const accountUsername = sessionUser?.chess_com_username?.trim() ?? "";
+  const prefill = username || accountUsername;
+
   return (
     <StepInput
-      onSubmit={(user) => {
-        void runAnalysis(user);
-      }}
-      apiError={errorMessage || undefined}
       initialUsername={prefill}
+      onSubmit={handleSubmit}
+      onShowSample={showSample}
+      apiError={errorMessage || undefined}
       accountEmail={sessionUser?.email ?? null}
     />
   );

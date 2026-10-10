@@ -44,7 +44,7 @@ npm start
 
 ### Environment variables
 
-Game import and the sample demo (`/analyze?sample=1`) work without a database. Accounts, saved analyses, and the dashboard need Postgres.
+Game import, the sample demo (`/analyze?sample=1`), and `/revue` work without a database. Without `DATABASE_URL`, `/login` and `/dashboard` show “Compte bientôt disponible” instead of an error. Accounts, saved analyses, and the dashboard need Postgres.
 
 | Variable | Required | Description |
 |----------|----------|-------------|

@@ -28,7 +28,7 @@ const OPENING_FAMILIES: OpeningFamilyDefinition[] = [
   { key: "vienna-game", name: "Vienna Game", start: "C25", end: "C29", aliases: ["vienna"] },
   { key: "kings-gambit", name: "King's Gambit", start: "C30", end: "C39" },
   { key: "french-defense", name: "French Defense", start: "C00", end: "C19", aliases: ["french"] },
-  { key: "italian-game", name: "Italian Game", start: "C50", end: "C55", aliases: ["giuoco piano", "two knights defense"] },
+  { key: "italian-game", name: "Italian Game", start: "C50", end: "C59", aliases: ["giuoco piano", "two knights defense"] },
   { key: "ruy-lopez", name: "Ruy Lopez", start: "C60", end: "C99", aliases: ["spanish opening"] },
   { key: "london-system", name: "London System", start: "D02", end: "D05", aliases: ["london"] },
   { key: "queens-gambit", name: "Queen's Gambit", start: "D06", end: "D69", aliases: ["queen's gambit", "queens gambit"] },
@@ -55,9 +55,15 @@ export function findCatalogOpeningByEco(ecoCode: string | null | undefined) {
     return null;
   }
 
-  return (
-    openingCatalog.find((entry) => entry.eco_codes.includes(normalizedEcoCode)) ?? null
-  );
+  const matches = openingCatalog.filter((entry) => entry.eco_codes.includes(normalizedEcoCode));
+
+  if (matches.length === 0) {
+    return null;
+  }
+
+  // Tarrasch shares D32–D34 with the broader Queen's Gambit Declined list.
+  // The narrower catalog entry is the one with a real plan for that code.
+  return matches.reduce((best, entry) => (entry.eco_codes.length < best.eco_codes.length ? entry : best));
 }
 
 export function findCatalogOpeningByName(openingName: string | null | undefined) {
@@ -67,12 +73,44 @@ export function findCatalogOpeningByName(openingName: string | null | undefined)
     return null;
   }
 
-  return (
-    openingCatalog.find((entry) => {
-      const candidateNames = [entry.name, entry.common_name, ...entry.variations.map((variation) => variation.name)];
-      return candidateNames.some((candidateName) => normalizeName(candidateName) === normalizedOpeningName);
-    }) ?? null
+  const titleHits = openingCatalog.filter((entry) =>
+    [entry.name, entry.common_name].some((candidateName) => normalizeName(candidateName) === normalizedOpeningName),
   );
+
+  if (titleHits.length === 1) {
+    return titleHits[0];
+  }
+
+  const variationHits = openingCatalog.filter((entry) =>
+    entry.variations.some((variation) => normalizeName(variation.name) === normalizedOpeningName),
+  );
+
+  if (variationHits.length === 1) {
+    return variationHits[0];
+  }
+
+  // Shared labels such as "English Attack" or "Classical Variation" belong to
+  // more than one catalog entry. Guessing from a shorter common name ("English")
+  // would attach the wrong plan.
+  if (variationHits.length > 1) {
+    return null;
+  }
+
+  let bestScore = 0;
+  let winners: OpeningCatalogEntry[] = [];
+
+  for (const entry of openingCatalog) {
+    const score = scoreCatalogName(entry, normalizedOpeningName);
+
+    if (score > bestScore) {
+      bestScore = score;
+      winners = [entry];
+    } else if (score > 0 && score === bestScore) {
+      winners.push(entry);
+    }
+  }
+
+  return winners.length === 1 ? winners[0] : null;
 }
 
 export function findCatalogOpening(ecoCode: string | null | undefined, openingName: string | null | undefined) {
@@ -81,25 +119,27 @@ export function findCatalogOpening(ecoCode: string | null | undefined, openingNa
 
 export function getOpeningLookup(ecoCode: string | null | undefined, openingName: string | null | undefined): OpeningLookupResult {
   const normalizedEcoCode = normalizeEcoCode(ecoCode);
+  const catalogEntry = findCatalogOpening(normalizedEcoCode, openingName);
   const family = normalizedEcoCode
     ? OPENING_FAMILIES.find((candidate) => compareEcoCodes(normalizedEcoCode, candidate.start) >= 0 && compareEcoCodes(normalizedEcoCode, candidate.end) <= 0) ?? null
     : findFamilyByName(openingName);
+
+  // Imported games are grouped by this name, then the report looks the catalog
+  // up again with no ECO code. Keep the specific catalog title (Najdorf, Tarrasch)
+  // so that second lookup still finds a plan and a club-player mistake.
+  if (catalogEntry) {
+    return {
+      key: family?.key ?? slugify(catalogEntry.common_name ?? catalogEntry.name),
+      name: catalogEntry.name,
+      catalogEntry,
+    };
+  }
 
   if (family) {
     return {
       key: family.key,
       name: family.name,
-      catalogEntry: findCatalogOpening(normalizedEcoCode, openingName),
-    };
-  }
-
-  const catalogEntry = findCatalogOpening(normalizedEcoCode, openingName);
-
-  if (catalogEntry) {
-    return {
-      key: slugify(catalogEntry.common_name ?? catalogEntry.name),
-      name: catalogEntry.name,
-      catalogEntry,
+      catalogEntry: null,
     };
   }
 
@@ -135,10 +175,39 @@ function compareEcoCodes(left: string, right: string) {
   return Number(left.slice(1)) - Number(right.slice(1));
 }
 
+function scoreCatalogName(entry: OpeningCatalogEntry, normalizedOpeningName: string) {
+  const title = normalizeName(entry.name);
+  const commonName = normalizeName(entry.common_name);
+  let score = 0;
+
+  if (title.length >= 4 && includesPhrase(normalizedOpeningName, title)) {
+    score = Math.max(score, 500 + title.length);
+  }
+
+  if (commonName.length >= 4 && includesPhrase(normalizedOpeningName, commonName)) {
+    score = Math.max(score, 400 + commonName.length);
+  }
+
+  for (const variation of entry.variations) {
+    const variationName = normalizeName(variation.name);
+
+    if (variationName.length >= 12 && includesPhrase(normalizedOpeningName, variationName)) {
+      score = Math.max(score, 200 + variationName.length);
+    }
+  }
+
+  return score;
+}
+
+function includesPhrase(haystack: string, needle: string) {
+  return ` ${haystack} `.includes(` ${needle} `);
+}
+
 function normalizeName(value: string | null | undefined) {
   return value
     ?.normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’]s\b/gi, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim() ?? "";

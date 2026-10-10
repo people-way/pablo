@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { AccountNav } from "@/components/account-nav";
+import { AccountsSoon } from "@/components/accounts-soon";
+import { ACCOUNTS_UNAVAILABLE_CODE } from "@/lib/accounts-copy";
 import { requestMagicLink } from "@/lib/magic-link-client";
 
-function queryLoginError(error: string | null): string {
+function queryErrorMessage(error: string | null) {
   if (error === "invalid_token") {
     return "That link has expired or already been used. Enter your email to get a new one.";
   }
@@ -15,7 +17,7 @@ function queryLoginError(error: string | null): string {
     return "Invalid login link. Enter your email below.";
   }
   if (error === "storage") {
-    return "Account storage is unavailable. Set DATABASE_URL and try again.";
+    return "Account storage is unavailable right now. Analysis and game review still work.";
   }
   return "";
 }
@@ -27,9 +29,28 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState("");
   const [bypassLink, setBypassLink] = useState<string | null>(null);
-  const errorMsg = formError ?? queryLoginError(error);
+  const [accountsAvailable, setAccountsAvailable] = useState<boolean | null>(
+    error === "accounts" ? false : null,
+  );
+  const errorMsg = formError || queryErrorMessage(error);
+
+  useEffect(() => {
+    if (error === "accounts") return;
+    let cancelled = false;
+    fetch("/api/auth/session")
+      .then((response) => response.json())
+      .then((data: { accountsAvailable?: boolean }) => {
+        if (!cancelled) setAccountsAvailable(data.accountsAvailable !== false);
+      })
+      .catch(() => {
+        if (!cancelled) setAccountsAvailable(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [error]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,11 +59,16 @@ function LoginForm() {
       setFormError("Enter a valid email address.");
       return;
     }
-    setFormError(null);
+    setFormError("");
     setBypassLink(null);
     setStatus("sending");
     try {
       const data = await requestMagicLink(trimmed, redirect);
+      if (data.code === ACCOUNTS_UNAVAILABLE_CODE) {
+        setAccountsAvailable(false);
+        setStatus("idle");
+        return;
+      }
       if (!data.ok) {
         setFormError(data.error || "Something went wrong. Try again.");
         setStatus("error");
@@ -76,10 +102,9 @@ function LoginForm() {
         {bypassLink ? (
           <>
             <p className="text-base leading-7 mb-6" style={{ color: "var(--text-secondary)" }}>
-              Email can&apos;t be sent in this environment (the nanocorp CLI is missing).
-              This one-time link works because you&apos;re in development, or{" "}
-              <code>PABLO_AUTH_BYPASS=1</code> is set. It expires in 15 minutes and is
-              never returned in production without that flag.
+              Email can&apos;t be sent in this environment. This one-time link works in development,
+              or when <code>PABLO_AUTH_BYPASS=1</code> is set. It is not returned in production
+              without that flag.
             </p>
             <a
               href={bypassLink}
@@ -102,6 +127,18 @@ function LoginForm() {
         >
           Use a different email
         </button>
+      </div>
+    );
+  }
+
+  if (accountsAvailable === false) {
+    return <AccountsSoon />;
+  }
+
+  if (accountsAvailable === null) {
+    return (
+      <div className="text-5xl" style={{ color: "var(--gold)" }} aria-hidden>
+        ♞
       </div>
     );
   }
@@ -199,6 +236,8 @@ function LoginForm() {
         </p>
         <p className="mt-3 text-xs text-center" style={{ color: "var(--text-muted)" }}>
           <Link href="/analyze" className="underline">Run a free analysis first →</Link>
+          {" · "}
+          <Link href="/revue" className="underline">Revue de partie →</Link>
         </p>
       </div>
     </div>

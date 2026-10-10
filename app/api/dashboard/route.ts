@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
-import { query, queryOne } from "@/lib/db";
+import { accountsUnavailablePayload } from "@/lib/accounts-response";
+import { accountsConfigured, query, queryOne } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -116,6 +117,10 @@ function computeStreak(analyses: { run_at: string }[]): number {
 }
 
 export async function GET() {
+  if (!accountsConfigured()) {
+    return Response.json(accountsUnavailablePayload(), { status: 200 });
+  }
+
   let user;
   try {
     user = await getCurrentUser();

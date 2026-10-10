@@ -43,6 +43,9 @@ export function AccountLinks() {
       <Link href="/analyze" className={linkClass}>
         Analyze
       </Link>
+      <Link href="/revue" className={linkClass}>
+        Revue
+      </Link>
       <Link href="/dashboard" className={linkClass}>
         Dashboard
       </Link>
@@ -84,6 +87,9 @@ export function AccountNav() {
         <nav className="flex items-center gap-3 sm:gap-5" style={{ color: "var(--text-secondary)" }}>
           <Link href="/analyze" className={linkClass}>
             Analyze
+          </Link>
+          <Link href="/revue" className={linkClass}>
+            Revue
           </Link>
           <Link href="/dashboard" className={linkClass}>
             Dashboard

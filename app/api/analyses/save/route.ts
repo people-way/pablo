@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { ensureSchema, getPool } from "@/lib/db";
+import { accountsUnavailableResponse } from "@/lib/accounts-response";
+import { accountsConfigured, ensureSchema, getPool } from "@/lib/db";
 import { isSampleUsername } from "@/lib/sample-games";
 import type {
   OpeningPlayed,
@@ -45,6 +46,10 @@ function playedOpenings(result: OpeningsAnalysisResult): OpeningPlayed[] {
 }
 
 export async function POST(request: NextRequest) {
+  if (!accountsConfigured()) {
+    return accountsUnavailableResponse();
+  }
+
   let user;
   try {
     user = await getCurrentUser();
