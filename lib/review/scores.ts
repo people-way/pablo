@@ -57,11 +57,23 @@ export function moverCentipawns(evaluation: NodeEval, color: Side) {
   return color === "w" ? evaluation.cp : -evaluation.cp;
 }
 
-/** Win chance for the side to move's centipawn score, 0–100. */
+/** Lichess winning chances, from -1 (lost) to 1 (won). Mate scores stay above any pawn eval. */
+export function rawWinningChances(cp: number) {
+  return 2 / (1 + Math.exp(-0.00368208 * cp)) - 1;
+}
+
+export function winningChances(cp: number) {
+  return rawWinningChances(Math.max(-1000, Math.min(1000, cp)));
+}
+
+export function mateWinningChances(mate: number) {
+  const magnitude = (21 - Math.min(10, Math.abs(mate))) * 100;
+  return rawWinningChances(magnitude * Math.sign(mate));
+}
+
+/** Win chance for a centipawn score, 0–100. Values beyond ±10 pawns are capped. */
 export function winPercent(cp: number) {
-  const clamped = Math.max(-1000, Math.min(1000, cp));
-  const win = 2 / (1 + Math.exp(-0.00368208 * clamped)) - 1;
-  return 50 + 50 * win;
+  return 50 + 50 * winningChances(cp);
 }
 
 /**

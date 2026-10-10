@@ -14,10 +14,12 @@ type PendingSearch = {
   reject: (error: Error) => void;
   onProgress?: (result: EngineSearch) => void;
   aborted: boolean;
+  timedOut: boolean;
 };
 
 const READY_TIMEOUT_MS = 20_000;
-const SEARCH_TIMEOUT_MS = 90_000;
+const SEARCH_TIMEOUT_MS = 45_000;
+const STOP_WATCH_MS = 2_500;
 
 export class ReviewEngine {
   private worker: Worker;
@@ -25,46 +27,14 @@ export class ReviewEngine {
   private queue: Array<() => void> = [];
   private readyPromise: Promise<void>;
   private failed = false;
+  private generation = 0;
+  private stopWatch: ReturnType<typeof setTimeout> | null = null;
+  private readonly workerUrl: string;
 
   constructor(workerUrl = "/engine/stockfish-18-lite-single.js") {
-    this.worker = new Worker(workerUrl);
-    this.readyPromise = new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        this.fail(new Error("Le moteur n'a pas répondu."));
-        reject(new Error("Le moteur n'a pas répondu."));
-      }, READY_TIMEOUT_MS);
-
-      const onReady = () => {
-        clearTimeout(timeout);
-        resolve();
-      };
-
-      this.worker.onmessage = (event) => {
-        const line = String(event.data ?? "");
-
-        if (line === "uciok") {
-          this.worker.postMessage("setoption name Hash value 16");
-          this.worker.postMessage("ucinewgame");
-          this.worker.postMessage("isready");
-          return;
-        }
-
-        if (line === "readyok") {
-          onReady();
-          this.worker.onmessage = (next) => this.onLine(String(next.data ?? ""));
-          return;
-        }
-      };
-
-      this.worker.onerror = () => {
-        clearTimeout(timeout);
-        const error = new Error("Le moteur Stockfish n'a pas démarré.");
-        this.fail(error);
-        reject(error);
-      };
-
-      this.worker.postMessage("uci");
-    });
+    this.workerUrl = workerUrl;
+    this.worker = this.createWorker();
+    this.readyPromise = this.whenReady();
   }
 
   get ready() {
@@ -78,7 +48,12 @@ export class ReviewEngine {
     signal?: AbortSignal;
     onProgress?: (result: EngineSearch) => void;
   }): Promise<EngineSearch> {
+    const generation = this.generation;
     await this.readyPromise;
+
+    if (generation !== this.generation) {
+      return this.search(options);
+    }
 
     if (this.failed) {
       throw new Error("Le moteur est arrêté.");
@@ -90,6 +65,12 @@ export class ReviewEngine {
 
     return new Promise((resolve, reject) => {
       const start = () => {
+        if (this.generation !== generation) {
+          reject(abortError());
+          this.pump();
+          return;
+        }
+
         if (options.signal?.aborted) {
           reject(abortError());
           this.pump();
@@ -102,13 +83,13 @@ export class ReviewEngine {
           reject,
           onProgress: options.onProgress,
           aborted: false,
+          timedOut: false,
         };
         this.pending = pending;
 
         const timeout = setTimeout(() => {
-          if (this.pending === pending) {
-            pending.aborted = true;
-            this.worker.postMessage("stop");
+          if (this.pending === pending && !pending.aborted) {
+            this.requestStop(pending, "timeout");
           }
         }, SEARCH_TIMEOUT_MS);
 
@@ -131,8 +112,7 @@ export class ReviewEngine {
               return;
             }
 
-            pending.aborted = true;
-            this.worker.postMessage("stop");
+            this.requestStop(pending, "abort");
           },
           { once: true },
         );
@@ -143,8 +123,7 @@ export class ReviewEngine {
       };
 
       if (this.pending) {
-        this.pending.aborted = true;
-        this.worker.postMessage("stop");
+        this.requestStop(this.pending, "abort");
         this.queue.push(start);
         return;
       }
@@ -154,8 +133,104 @@ export class ReviewEngine {
   }
 
   dispose() {
+    this.clearStopWatch();
     this.fail(new Error("Moteur fermé."));
     this.worker.terminate();
+  }
+
+  private createWorker() {
+    return new Worker(this.workerUrl);
+  }
+
+  private whenReady() {
+    return new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.fail(new Error("Le moteur n'a pas répondu."));
+        reject(new Error("Le moteur n'a pas répondu."));
+      }, READY_TIMEOUT_MS);
+
+      this.worker.onmessage = (event) => {
+        const line = String(event.data ?? "");
+
+        if (line === "uciok") {
+          this.worker.postMessage("setoption name Hash value 16");
+          this.worker.postMessage("ucinewgame");
+          this.worker.postMessage("isready");
+          return;
+        }
+
+        if (line === "readyok") {
+          clearTimeout(timeout);
+          this.worker.onmessage = (next) => this.onLine(String(next.data ?? ""));
+          resolve();
+        }
+      };
+
+      this.worker.onerror = () => {
+        clearTimeout(timeout);
+        const error = new Error("Le moteur Stockfish n'a pas démarré.");
+        this.fail(error);
+        reject(error);
+      };
+
+      this.worker.postMessage("uci");
+    });
+  }
+
+  private requestStop(pending: PendingSearch, mode: "abort" | "timeout") {
+    if (this.pending !== pending) {
+      return;
+    }
+
+    if (mode === "abort") {
+      pending.aborted = true;
+    } else {
+      pending.timedOut = true;
+    }
+
+    this.worker.postMessage("stop");
+    this.armStopWatch(pending);
+  }
+
+  private armStopWatch(pending: PendingSearch) {
+    this.clearStopWatch();
+    this.stopWatch = setTimeout(() => {
+      if (this.pending !== pending) {
+        return;
+      }
+
+      this.pending = null;
+      const partial = snapshot(pending, null);
+
+      if (pending.timedOut && !pending.aborted && partial.lines.length > 0) {
+        pending.resolve(partial);
+      } else if (pending.aborted) {
+        pending.reject(abortError());
+      } else {
+        pending.reject(new Error("Le moteur n'a pas répondu."));
+      }
+
+      this.reboot();
+    }, STOP_WATCH_MS);
+  }
+
+  private reboot() {
+    this.clearStopWatch();
+    this.generation += 1;
+    this.worker.onmessage = null;
+    this.worker.terminate();
+    this.failed = false;
+    this.pending = null;
+    this.worker = this.createWorker();
+    this.readyPromise = this.whenReady();
+    void this.readyPromise.then(() => this.pump()).catch(() => undefined);
+  }
+
+  private clearStopWatch() {
+    if (this.stopWatch) {
+      clearTimeout(this.stopWatch);
+      this.stopWatch = null;
+    }
   }
 
   private onLine(line: string) {
@@ -185,9 +260,10 @@ export class ReviewEngine {
   private finish(bestUci: string | null) {
     const pending = this.pending;
     this.pending = null;
+    this.clearStopWatch();
 
     if (pending) {
-      if (pending.aborted) {
+      if (pending.aborted && !pending.timedOut) {
         pending.reject(abortError());
       } else {
         pending.resolve(snapshot(pending, bestUci));
@@ -199,11 +275,17 @@ export class ReviewEngine {
 
   private pump() {
     const next = this.queue.shift();
-    next?.();
+
+    if (!next) {
+      return;
+    }
+
+    void this.readyPromise.then(() => next()).catch(() => undefined);
   }
 
   private fail(error: Error) {
     this.failed = true;
+    this.clearStopWatch();
     const pending = this.pending;
     this.pending = null;
     pending?.reject(error);

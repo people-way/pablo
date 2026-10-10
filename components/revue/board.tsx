@@ -23,11 +23,15 @@ export function ChessBoard({
   fen,
   orientation,
   lastMove,
+  bestMove,
+  interactive = true,
   onPlay,
 }: {
   fen: string;
   orientation: "w" | "b";
   lastMove: { from: Square; to: Square } | null;
+  bestMove?: string | null;
+  interactive?: boolean;
   onPlay: (uci: string) => void;
 }) {
   const [selected, setSelected] = useState<Square | null>(null);
@@ -49,7 +53,7 @@ export function ChessBoard({
     : undefined;
 
   function choose(square: Square) {
-    if (promotion) {
+    if (!interactive || promotion) {
       return;
     }
 
@@ -89,8 +93,10 @@ export function ChessBoard({
     setSelected(null);
   }
 
+  const hint = bestMove && bestMove.length >= 4 ? arrowGeometry(bestMove, orientation) : null;
+
   return (
-    <div className="relative w-full">
+    <div className="relative w-full max-w-full">
       <div
         className="grid aspect-square w-full overflow-hidden rounded-lg border"
         style={{
@@ -119,7 +125,7 @@ export function ChessBoard({
                 type="button"
                 aria-label={label}
                 onClick={() => choose(square)}
-                className="relative flex items-center justify-center"
+                className="relative flex items-center justify-center touch-manipulation"
                 style={{
                   background: isCheck
                     ? "#a33b3b"
@@ -175,6 +181,33 @@ export function ChessBoard({
           }),
         )}
       </div>
+      {hint ? (
+        <svg
+          viewBox="0 0 100 100"
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          aria-hidden="true"
+        >
+          <line
+            x1={hint.x1}
+            y1={hint.y1}
+            x2={hint.x2}
+            y2={hint.y2}
+            stroke="#1a140c"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+          />
+          <line
+            x1={hint.x1}
+            y1={hint.y1}
+            x2={hint.x2}
+            y2={hint.y2}
+            stroke="#e2c56a"
+            strokeWidth="1.35"
+            strokeLinecap="round"
+          />
+          <polygon points={hint.head} fill="#e2c56a" stroke="#1a140c" strokeWidth="0.6" />
+        </svg>
+      ) : null}
       {promotion ? (
         <div
           className="absolute inset-x-0 top-2 z-10 mx-auto flex w-fit gap-2 rounded-xl p-2"
@@ -200,4 +233,40 @@ export function ChessBoard({
       ) : null}
     </div>
   );
+}
+
+function arrowGeometry(uci: string, orientation: "w" | "b") {
+  const start = squarePoint(uci.slice(0, 2) as Square, orientation);
+  const end = squarePoint(uci.slice(2, 4) as Square, orientation);
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const ux = dx / length;
+  const uy = dy / length;
+  const x1 = start.x + ux * 3.2;
+  const y1 = start.y + uy * 3.2;
+  const x2 = end.x - ux * 5.4;
+  const y2 = end.y - uy * 5.4;
+  const px = -uy;
+  const py = ux;
+  const tipX = end.x - ux * 1.6;
+  const tipY = end.y - uy * 1.6;
+  const baseX = x2;
+  const baseY = y2;
+
+  return {
+    x1,
+    y1,
+    x2,
+    y2,
+    head: `${tipX},${tipY} ${baseX + px * 2.3},${baseY + py * 2.3} ${baseX - px * 2.3},${baseY - py * 2.3}`,
+  };
+}
+
+function squarePoint(square: Square, orientation: "w" | "b") {
+  const file = square.charCodeAt(0) - 97;
+  const rank = Number(square[1]) - 1;
+  const x = orientation === "w" ? file : 7 - file;
+  const y = orientation === "w" ? 7 - rank : rank;
+  return { x: ((x + 0.5) / 8) * 100, y: ((y + 0.5) / 8) * 100 };
 }
