@@ -1,8 +1,13 @@
 import type { NextRequest } from "next/server";
-import { getCurrentUser, normalizeChessComUsername, updateChessUsername } from "@/lib/auth";
-import { accountsUnavailableResponse } from "@/lib/accounts-response";
-import { accountsConfigured } from "@/lib/db";
 import { isSampleUsername } from "@/lib/sample-games";
+import {
+  AccountStorageError,
+  getCurrentUser,
+  normalizeChessComUsername,
+  updateChessUsername,
+} from "@/lib/auth";
+import { accountsUnavailableResponse } from "@/lib/accounts-response";
+import { accountsConfigured } from "@/lib/supabase/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,9 +21,12 @@ export async function PATCH(request: NextRequest) {
   try {
     user = await getCurrentUser();
   } catch (error) {
-    console.error("Profile auth lookup failed", error instanceof Error ? error.message : "");
+    console.error(
+      "Profile auth lookup failed",
+      error instanceof AccountStorageError ? error.message : "",
+    );
     return Response.json(
-      { error: "Account storage is unavailable. Set DATABASE_URL and try again." },
+      { error: "Account storage is unavailable. Check the Supabase settings and try again." },
       { status: 503 },
     );
   }
@@ -51,7 +59,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
-    await updateChessUsername(user.id, username, { migrateHistory: true });
+    await updateChessUsername(username);
   } catch (error) {
     console.error(
       "Failed to update Chess.com username",

@@ -44,18 +44,39 @@ npm start
 
 ### Environment variables
 
-Game import, the sample demo (`/analyze?sample=1`), and `/revue` work without a database. Without `DATABASE_URL`, `/login` and `/dashboard` show “Compte bientôt disponible” instead of an error. Accounts, saved analyses, and the dashboard need Postgres.
+Game import, the sample demo (`/analyze?sample=1`), and `/revue` work with no account backend. Without the two Supabase variables below, `/login` and `/dashboard` show “Compte bientôt disponible” instead of an error. Saved analyses, the Chess.com username, and the dashboard need both variables. `NEXT_PUBLIC_*` values are inlined at build time, so change them and redeploy.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | For accounts | Postgres connection string. The app creates its tables on first use if they are missing. |
-| `DATABASE_SSL` | No | Set to `disable` for local Postgres without SSL. Remote databases use SSL by default. |
-| `NEXT_PUBLIC_BASE_URL` | Recommended in production | Public origin used inside emailed magic links. Falls back to the request origin. |
-| `PABLO_AUTH_BYPASS` | No | Set to `1` to return a one-time login link when email cannot be sent. Also on automatically when `NODE_ENV=development`. Never set this in production unless you intentionally want that bypass. |
+| `NEXT_PUBLIC_SUPABASE_URL` | For accounts | Project URL, for example `https://<project-ref>.supabase.co`. |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | For accounts | Publishable key (`sb_publishable_...`). Safe to expose in the browser. Do not set a secret or service-role key. |
 
-Magic-link email is sent with the NanoCorp CLI: `nanocorp emails send --to <email> --from pablo@nanocorp.app`. If that CLI is missing, login returns a clear error. In development, or with `PABLO_AUTH_BYPASS=1`, the API instead returns the login link so preview still works.
+Set both for Production, Preview, and Development under **Settings → Environment Variables**. The app does not use `DATABASE_URL`, `DATABASE_SSL`, `PABLO_AUTH_BYPASS`, or the NanoCorp email CLI.
 
-Set variables in the Vercel dashboard under **Settings → Environment Variables**.
+### Supabase Auth settings
+
+Apply the files in `supabase/migrations/` in timestamp order (or `supabase db push`) before turning accounts on. `20261010151332_pablo_init.sql` creates `pablo_profiles`, `pablo_analyses`, and `pablo_opening_stats` in `public`, with row level security so each user can only touch `auth.uid()`. `20261010151951_pablo_profiles_rls_initplan.sql` recreates the profile policy so `auth.uid()` and `auth.jwt()` are read once per statement.
+
+In **Authentication → URL configuration**:
+
+| Setting | Value |
+|---------|--------|
+| Site URL | The production origin, for example `https://<production-host>` |
+| Redirect URLs | `http://localhost:3000/**` |
+| | `https://*-peopleways-projects.vercel.app/**` |
+| | `https://pablo.anarchikgames.com/**` |
+| | The production origin with `/**`, if it is not already covered |
+
+Magic links are sent by Supabase. The default template works when the link is opened in the same browser that requested it (PKCE). To also allow another device, edit the templates under **Authentication → Emails** and point them at `/auth/callback` with `token_hash`:
+
+- **Magic Link:** `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=magiclink`
+- **Confirm signup:** `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email`
+
+`RedirectTo` is the `/auth/callback` URL for the environment that asked for the link, so preview deployments keep working. OTP expiry is **Authentication → Providers → Email** (the default is one hour).
+
+### Accounts data
+
+Pablo tables are prefixed `pablo_` because this Supabase project is shared with other Anarchik Games. The browser and server use the publishable key and the user session only. There is no service-role key in the app.
 
 ## Stripe payment link
 
@@ -68,6 +89,7 @@ To update it, edit the `PAYMENT_LINK` constant in:
 ## Tech stack
 
 - [Next.js 16](https://nextjs.org/) — App Router, TypeScript
+- [Supabase Auth](https://supabase.com/docs/guides/auth/server-side/nextjs) — magic-link login and Postgres with row level security (`@supabase/ssr`)
 - [Tailwind CSS v4](https://tailwindcss.com/)
 - [chess.js](https://github.com/jhlywa/chess.js) — PGN parsing and move validation
 - [Stockfish 18](https://stockfishchess.org/) — engine analysis (Node.js runtime, server-side only)

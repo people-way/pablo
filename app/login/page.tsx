@@ -11,7 +11,7 @@ import { requestMagicLink } from "@/lib/magic-link-client";
 
 function queryErrorMessage(error: string | null) {
   if (error === "invalid_token") {
-    return "That link has expired or already been used. Enter your email to get a new one.";
+    return "That link has expired, was already used, or was opened in a different browser. Enter your email to get a new one.";
   }
   if (error === "missing_token") {
     return "Invalid login link. Enter your email below.";
@@ -30,7 +30,6 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [formError, setFormError] = useState("");
-  const [bypassLink, setBypassLink] = useState<string | null>(null);
   const [accountsAvailable, setAccountsAvailable] = useState<boolean | null>(
     error === "accounts" ? false : null,
   );
@@ -60,7 +59,6 @@ function LoginForm() {
       return;
     }
     setFormError("");
-    setBypassLink(null);
     setStatus("sending");
     try {
       const data = await requestMagicLink(trimmed, redirect);
@@ -73,9 +71,6 @@ function LoginForm() {
         setFormError(data.error || "Something went wrong. Try again.");
         setStatus("error");
         return;
-      }
-      if (data.delivered === "bypass" && data.magicLink) {
-        setBypassLink(data.magicLink);
       }
       setStatus("sent");
     } catch {
@@ -97,29 +92,12 @@ function LoginForm() {
           className="text-3xl font-bold mb-4"
           style={{ fontFamily: "var(--font-playfair), serif" }}
         >
-          {bypassLink ? "Login link ready" : "Check your email"}
+          Check your email
         </h2>
-        {bypassLink ? (
-          <>
-            <p className="text-base leading-7 mb-6" style={{ color: "var(--text-secondary)" }}>
-              Email can&apos;t be sent in this environment. This one-time link works in development,
-              or when <code>PABLO_AUTH_BYPASS=1</code> is set. It is not returned in production
-              without that flag.
-            </p>
-            <a
-              href={bypassLink}
-              className="btn-gold inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-bold mb-6"
-              style={{ color: "#0a0b0c" }}
-            >
-              Continue to your account
-            </a>
-          </>
-        ) : (
-          <p className="text-base leading-7 mb-6" style={{ color: "var(--text-secondary)" }}>
-            Pablo sent a login link to <strong style={{ color: "var(--text-primary)" }}>{email}</strong>.
-            Click the link in that email to log in. It expires in 15 minutes.
-          </p>
-        )}
+        <p className="text-base leading-7 mb-6" style={{ color: "var(--text-secondary)" }}>
+          Pablo sent a login link to <strong style={{ color: "var(--text-primary)" }}>{email}</strong>.
+          Open it in this browser. The link expires after a short time.
+        </p>
         <button
           onClick={() => { setStatus("idle"); setEmail(""); }}
           className="text-sm underline"

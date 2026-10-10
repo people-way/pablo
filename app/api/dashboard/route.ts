@@ -1,6 +1,7 @@
-import { getCurrentUser } from "@/lib/auth";
+import { AccountStorageError, getCurrentUser } from "@/lib/auth";
 import { accountsUnavailablePayload } from "@/lib/accounts-response";
-import { accountsConfigured, query, queryOne } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
+import { accountsConfigured } from "@/lib/supabase/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -73,7 +74,7 @@ const BADGE_MAP: Record<string, string> = {
   "Queen's Gambit": "Queen's Gambit Champion",
   "King's Gambit": "King's Gambit Hero",
   English: "English Architect",
-  "Reti": "Réti Maestro",
+  Reti: "Réti Maestro",
   Dutch: "Dutch Defender",
   Pirc: "Pirc Pathfinder",
   Vienna: "Vienna Master",
@@ -90,16 +91,14 @@ function getBadge(opening: string, mastery: MasteryInfo): string | null {
 
 function computeStreak(analyses: { run_at: string }[]): number {
   if (analyses.length === 0) return 0;
-  // Sort descending by run_at
   const dates = analyses
     .map((a) => new Date(a.run_at).toDateString())
-    .filter((v, i, arr) => arr.indexOf(v) === i) // unique dates
+    .filter((v, i, arr) => arr.indexOf(v) === i)
     .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
   const today = new Date().toDateString();
   const yesterday = new Date(Date.now() - 86400000).toDateString();
 
-  // Streak must include today or yesterday
   if (dates[0] !== today && dates[0] !== yesterday) return 0;
 
   let streak = 1;
@@ -116,6 +115,26 @@ function computeStreak(analyses: { run_at: string }[]): number {
   return streak;
 }
 
+function breakdownItems(value: unknown): { opening: string; color: string; winRate: number }[] {
+  let parsed = value;
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter(
+    (item): item is { opening: string; color: string; winRate: number } =>
+      !!item &&
+      typeof item === "object" &&
+      typeof (item as { opening?: unknown }).opening === "string" &&
+      typeof (item as { color?: unknown }).color === "string" &&
+      typeof (item as { winRate?: unknown }).winRate === "number",
+  );
+}
+
 export async function GET() {
   if (!accountsConfigured()) {
     return Response.json(accountsUnavailablePayload(), { status: 200 });
@@ -125,9 +144,12 @@ export async function GET() {
   try {
     user = await getCurrentUser();
   } catch (error) {
-    console.error("Dashboard auth lookup failed", error instanceof Error ? error.message : "");
+    console.error(
+      "Dashboard auth lookup failed",
+      error instanceof AccountStorageError ? error.message : "",
+    );
     return Response.json(
-      { error: "Couldn't load your dashboard. Check DATABASE_URL and try again." },
+      { error: "Couldn't load your dashboard. Try again in a moment." },
       { status: 503 },
     );
   }
@@ -139,29 +161,39 @@ export async function GET() {
   let openingStats: OpeningStatRow[];
   let totalCount = 0;
   try {
-    const [analysisRows, statRows, countRow] = await Promise.all([
-      query<AnalysisRow>(
-        `SELECT id, chess_com_username, run_at, total_games, wins, losses, draws, win_rate, opening_breakdown, pablo_summary
-         FROM analyses WHERE user_id = $1 ORDER BY run_at DESC LIMIT 50`,
-        [user.id],
-      ),
-      query<OpeningStatRow>(
-        `SELECT opening_family, color, games_played, wins, win_rate, last_updated
-         FROM opening_stats WHERE user_id = $1 ORDER BY games_played DESC`,
-        [user.id],
-      ),
-      queryOne<{ count: string }>(
-        `SELECT COUNT(*)::text AS count FROM analyses WHERE user_id = $1`,
-        [user.id],
-      ),
+    const supabase = await createClient();
+    const [analysisResult, statResult, countResult] = await Promise.all([
+      supabase
+        .from("pablo_analyses")
+        .select(
+          "id, chess_com_username, run_at, total_games, wins, losses, draws, win_rate, opening_breakdown, pablo_summary",
+        )
+        .eq("user_id", user.id)
+        .order("run_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("pablo_opening_stats")
+        .select("opening_family, color, games_played, wins, win_rate, last_updated")
+        .eq("user_id", user.id)
+        .order("games_played", { ascending: false }),
+      supabase
+        .from("pablo_analyses")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id),
     ]);
-    analyses = analysisRows;
-    openingStats = statRows;
-    totalCount = Number(countRow?.count ?? analysisRows.length);
+    if (analysisResult.error) throw new AccountStorageError(analysisResult.error.message);
+    if (statResult.error) throw new AccountStorageError(statResult.error.message);
+    if (countResult.error) throw new AccountStorageError(countResult.error.message);
+    analyses = (analysisResult.data ?? []) as AnalysisRow[];
+    openingStats = (statResult.data ?? []) as OpeningStatRow[];
+    totalCount = countResult.count ?? analyses.length;
   } catch (error) {
-    console.error("Dashboard query failed", error instanceof Error ? error.message : "");
+    console.error(
+      "Dashboard query failed",
+      error instanceof Error ? error.message : "",
+    );
     return Response.json(
-      { error: "Couldn't load your dashboard. Check DATABASE_URL and try again." },
+      { error: "Couldn't load your dashboard. Try again in a moment." },
       { status: 503 },
     );
   }
@@ -169,20 +201,9 @@ export async function GET() {
   const streak = computeStreak(analyses);
   const lastAnalysis = analyses[0] ?? null;
 
-  // Build per-opening history from analyses
-  const openingHistory = new Map<
-    string,
-    { runAt: string; winRate: number }[]
-  >();
+  const openingHistory = new Map<string, { runAt: string; winRate: number }[]>();
   for (const analysis of [...analyses].reverse()) {
-    const breakdown = Array.isArray(analysis.opening_breakdown)
-      ? (analysis.opening_breakdown as {
-          opening: string;
-          color: string;
-          winRate: number;
-        }[])
-      : [];
-    for (const item of breakdown) {
+    for (const item of breakdownItems(analysis.opening_breakdown)) {
       const key = `${item.opening}::${item.color}`;
       if (!openingHistory.has(key)) openingHistory.set(key, []);
       openingHistory.get(key)!.push({
