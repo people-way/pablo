@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess, type Square } from "chess.js";
 import { analyzeGame, ReviewCancelled } from "@/lib/review/analyze-game";
 import { classLabel, summarizePlayer, summaryText } from "@/lib/review/classify";
+import { adjacentWeakPly, centipawnGap, describeSpread, formatLineGap, isWeakMove } from "@/lib/review/lines";
 import { buildCoachingSession } from "@/lib/review/session";
 import { ReviewEngine, type EngineSearch } from "@/lib/review/engine-client";
 import { parseFen, parsePgn, parsePgnCollection, ReviewInputError, sanLine } from "@/lib/review/parse";
@@ -173,7 +174,13 @@ export function RevueApp() {
         return;
       }
 
-      if (event.key === "ArrowLeft") {
+      if (event.key === "ArrowLeft" && event.shiftKey) {
+        event.preventDefault();
+        jumpWeak(-1);
+      } else if (event.key === "ArrowRight" && event.shiftKey) {
+        event.preventDefault();
+        jumpWeak(1);
+      } else if (event.key === "ArrowLeft") {
         event.preventDefault();
         step(-1);
       } else if (event.key === "ArrowRight") {
@@ -191,6 +198,22 @@ export function RevueApp() {
         event.preventDefault();
         setOrientation((side) => (side === "w" ? "b" : "w"));
       }
+    }
+
+    function jumpWeak(direction: 1 | -1) {
+      if (!game) {
+        return;
+      }
+
+      const target = adjacentWeakPly(analyses, ply, direction);
+
+      if (target == null) {
+        return;
+      }
+
+      setExplore(null);
+      setLive(null);
+      setPly(target);
     }
 
     function step(direction: number) {
@@ -224,11 +247,22 @@ export function RevueApp() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [explore, game]);
+  }, [explore, game, analyses, ply]);
 
   function exitExplore() {
     setExplore(null);
     setLive(null);
+  }
+
+  function goToWeak(direction: 1 | -1) {
+    const target = adjacentWeakPly(analyses, ply, direction);
+
+    if (target == null) {
+      return;
+    }
+
+    exitExplore();
+    setPly(target);
   }
 
   function revealBoard() {
@@ -575,6 +609,17 @@ export function RevueApp() {
       : "";
   const lastMove = lastSquares(loaded, ply, explore);
   const progress = batch ? Math.round((batch.done / batch.total) * 100) : 0;
+  const chartMarks = analyses.flatMap((analysis, index) =>
+    analysis && isWeakMove(analysis.classification)
+      ? [{ ply: index + 1, classification: analysis.classification }]
+      : [],
+  );
+  const previousWeak = game ? adjacentWeakPly(analyses, ply, -1) : null;
+  const nextWeak = game ? adjacentWeakPly(analyses, ply, 1) : null;
+  const liveSide = sideToMove(displayedFen);
+  const liveLines = currentLive?.lines ?? [];
+  const spreadText =
+    liveLines.length >= 2 ? describeSpread(liveLines[0], liveLines[1], liveSide) : null;
 
   return (
     <main className="min-h-screen px-3 py-4 sm:px-6" style={{ background: "var(--bg-primary)" }}>
@@ -868,6 +913,12 @@ export function RevueApp() {
                 }
               />
               <NavButton label="Fin" onClick={() => { exitExplore(); if (game) setPly(game.moves.length); }} />
+              {game ? (
+                <NavButton label="Faiblesse préc." disabled={previousWeak == null} onClick={() => goToWeak(-1)} />
+              ) : null}
+              {game ? (
+                <NavButton label="Faiblesse suiv." disabled={nextWeak == null} onClick={() => goToWeak(1)} />
+              ) : null}
               <NavButton label="Retourner" onClick={() => setOrientation((side) => (side === "w" ? "b" : "w"))} />
               {game ? (
                 <NavButton
@@ -883,9 +934,19 @@ export function RevueApp() {
               ) : null}
             </div>
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-              Flèches pour avancer, F pour retourner. La flèche dorée est le coup conseillé. Clique une ligne pour la suivre.
+              Flèches pour avancer, Maj+flèches pour le coup faible suivant, F pour retourner. La flèche dorée est le coup conseillé. Clique une ligne pour la suivre.
             </p>
-            {game && !explore ? <EvalChart evals={nodeEvals} ply={ply} onPick={(next) => { exitExplore(); setPly(next); }} /> : null}
+            {game && !explore ? (
+              <EvalChart
+                evals={nodeEvals}
+                ply={ply}
+                marks={chartMarks}
+                onPick={(next) => {
+                  exitExplore();
+                  setPly(next);
+                }}
+              />
+            ) : null}
           </div>
 
           <div
@@ -1030,20 +1091,29 @@ export function RevueApp() {
                 <h3 className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
                   Lignes {currentLive ? `(profondeur ${currentLive.depth}/${depth})` : ""}
                 </h3>
-                {(currentLive?.lines ?? []).slice(0, 3).map((line) => {
-                  const white = toWhiteView(line, sideToMove(displayedFen));
+                {spreadText ? (
+                  <p className="text-sm" style={{ color: "var(--gold-light)" }}>
+                    {spreadText}
+                  </p>
+                ) : null}
+                {liveLines.slice(0, 3).map((line, index) => {
+                  const white = toWhiteView(line, liveSide);
                   const text = sanLine(displayedFen, line.pvUci);
+                  const gap = index > 0 && liveLines[0] ? centipawnGap(liveLines[0], line, liveSide) : 0;
+                  const gapText = formatLineGap(gap);
+                  const gapLabel = gap > 0 ? ` (${gapText === "mat" ? "mat" : `-${gapText}`})` : "";
                   return (
                     <button
                       key={line.multipv}
                       type="button"
                       className="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm"
-                      title="Suivre cette ligne"
+                      title={gap > 0 ? `Suivre cette ligne, écart ${gapText} pour le trait` : "Suivre cette ligne"}
                       style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)" }}
                       onClick={() => followLine(line.pvUci)}
                     >
                       <span className="font-semibold" style={{ color: "var(--gold-light)" }}>
                         {formatEval(white)}
+                        {gapLabel}
                       </span>{" "}
                       {text || "…"}
                     </button>
@@ -1202,12 +1272,21 @@ function isAbort(error: unknown) {
   return (error instanceof DOMException && error.name === "AbortError") || error instanceof ReviewCancelled;
 }
 
-function NavButton({ label, onClick }: { label: string; onClick: () => void }) {
+function NavButton({
+  label,
+  onClick,
+  disabled = false,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="min-h-11 rounded-lg px-3 text-sm"
+      disabled={disabled}
+      className="min-h-11 rounded-lg px-3 text-sm disabled:opacity-40"
       style={{ border: "1px solid var(--border)", color: "var(--text-primary)", background: "var(--bg-card)" }}
     >
       {label}
