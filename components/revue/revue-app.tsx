@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess, type Square } from "chess.js";
 import { analyzeGame, ReviewCancelled } from "@/lib/review/analyze-game";
 import { classLabel, summarizePlayer, summaryText } from "@/lib/review/classify";
+import { buildCoachingSession } from "@/lib/review/session";
 import { ReviewEngine, type EngineSearch } from "@/lib/review/engine-client";
 import { parseFen, parsePgn, parsePgnCollection, ReviewInputError, sanLine } from "@/lib/review/parse";
 import { SAMPLE_PGN } from "@/lib/review/sample";
@@ -12,6 +13,7 @@ import { formatCentipawnLoss, formatEval, sideToMove, toWhiteView } from "@/lib/
 import { readSaved, removeSaved, upsertSaved } from "@/lib/review/storage";
 import type { MoveAnalysis, NodeEval, ParsedGame, PgnDocument, SavedReview, Side } from "@/lib/review/types";
 import { ChessBoard } from "./board";
+import { CoachPanel } from "./coach-panel";
 import { classColor, EvalBar, EvalChart, MoveList } from "./widgets";
 
 const DEPTHS = [8, 10, 12, 14, 16];
@@ -542,7 +544,22 @@ export function RevueApp() {
   const doneMoves = analyses.filter((item): item is MoveAnalysis => item != null);
   const whiteSummary = summarizePlayer(doneMoves, "w");
   const blackSummary = summarizePlayer(doneMoves, "b");
+  const viewer = loaded.kind === "game" ? loaded.viewer : null;
+  const session = useMemo(() => {
+    if (!game) {
+      return null;
+    }
+
+    return buildCoachingSession({
+      moves: game.moves,
+      analyses,
+      openingHeader: game.opening,
+      result: game.result,
+      viewer,
+    });
+  }, [game, analyses, viewer]);
   const currentAnalysis = game && !explore && ply > 0 ? analyses[ply - 1] : null;
+  const currentNote = session && !explore && ply > 0 ? session.notes[ply - 1] : null;
   const currentLive = live?.fen === displayedFen ? live.search : null;
   const storedEval = game && !explore ? nodeEvals[ply] ?? null : null;
   const barEval = liveEval(displayedFen, currentLive) ?? storedEval;
@@ -957,6 +974,17 @@ export function RevueApp() {
               </div>
             ) : null}
 
+            {session && !explore ? (
+              <CoachPanel
+                session={session}
+                phase={session.phases[ply] ?? "ouverture"}
+                onPick={(next) => {
+                  exitExplore();
+                  setPly(next);
+                }}
+              />
+            ) : null}
+
             {explore ? (
               <p className="text-sm" style={{ color: "var(--gold)" }}>
                 Mode position
@@ -983,6 +1011,11 @@ export function RevueApp() {
                 <p style={{ color: "var(--text-muted)" }}>
                   {formatEval(currentAnalysis.before)} → {formatEval(currentAnalysis.after)}
                 </p>
+                {currentNote ? (
+                  <p className="mt-2 leading-relaxed" style={{ color: "var(--text-primary)" }}>
+                    {currentNote.text}
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
