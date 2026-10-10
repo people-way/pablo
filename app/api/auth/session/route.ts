@@ -1,6 +1,6 @@
-import { getCurrentUser } from "@/lib/auth";
-import { accountsConfigured } from "@/lib/db";
+import { AccountStorageError, getCurrentUser } from "@/lib/auth";
 import { ACCOUNTS_UNAVAILABLE_CODE } from "@/lib/accounts-copy";
+import { accountsConfigured } from "@/lib/supabase/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +17,8 @@ export async function GET() {
   let user;
   try {
     user = await getCurrentUser();
-  } catch {
+  } catch (error) {
+    if (!(error instanceof AccountStorageError)) throw error;
     return Response.json({ user: null, accountsAvailable: true });
   }
   if (!user) {

@@ -7,13 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test lib/openings/lookup.test.ts && node --import ./scripts/register-review-tests.mjs --test lib/review/*.test.ts"
+    "test": "tsx --test lib/openings/lookup.test.ts lib/account-guards.test.ts && node --import ./scripts/register-review-tests.mjs --test lib/review/*.test.ts"
   },
   "dependencies": {
-    "@types/pg": "^8.20.0",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.3",
     "chess.js": "^1.4.0",
     "next": "16.2.3",
-    "pg": "^8.20.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "stockfish": "^18.0.7"

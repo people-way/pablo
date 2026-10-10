@@ -758,7 +758,6 @@ function SaveGatePrompt({
 }) {
   const [email, setEmail] = useState("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [bypassLink, setBypassLink] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   async function handleSave(e: React.FormEvent) {
@@ -767,18 +766,12 @@ function SaveGatePrompt({
     if (!trimmed || !trimmed.includes("@")) return;
     setSaveStatus("sending");
     setErrorMsg("");
-    setBypassLink(null);
     stashPendingAnalysis({ result: report, chessUsername: username });
     try {
       const data = await requestMagicLink(trimmed, "/dashboard");
       if (data.code === ACCOUNTS_UNAVAILABLE_CODE) {
         setErrorMsg(data.error || "Compte bientôt disponible.");
         setSaveStatus("error");
-        return;
-      }
-      if (data.ok && data.delivered === "bypass" && data.magicLink) {
-        setBypassLink(data.magicLink);
-        setSaveStatus("sent");
         return;
       }
       if (data.ok) {
@@ -802,30 +795,11 @@ function SaveGatePrompt({
           background: "linear-gradient(135deg, rgba(8,20,12,0.97) 0%, rgba(10,14,12,0.99) 100%)",
         }}
       >
-        {bypassLink ? (
-          <>
-            <p className="text-sm font-bold" style={{ color: "#8ce0ac" }}>Login link ready</p>
-            <p className="text-sm leading-7" style={{ color: "var(--text-secondary)" }}>
-              Email can&apos;t be sent here. This one-time link works in development, or when{" "}
-              <code>PABLO_AUTH_BYPASS=1</code> is set.
-            </p>
-            <a
-              href={bypassLink}
-              className="btn-gold inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-bold"
-              style={{ color: "#0a0b0c" }}
-            >
-              Continue to your account
-            </a>
-          </>
-        ) : (
-          <>
-            <p className="text-sm font-bold" style={{ color: "#8ce0ac" }}>✓ Check your email</p>
-            <p className="text-sm leading-7" style={{ color: "var(--text-secondary)" }}>
-              Pablo sent a login link to <strong style={{ color: "var(--text-primary)" }}>{email}</strong>.
-              Open it in this browser and this report will land on your dashboard.
-            </p>
-          </>
-        )}
+        <p className="text-sm font-bold" style={{ color: "#8ce0ac" }}>✓ Check your email</p>
+        <p className="text-sm leading-7" style={{ color: "var(--text-secondary)" }}>
+          Pablo sent a login link to <strong style={{ color: "var(--text-primary)" }}>{email}</strong>.
+          Open it in this browser and this report will land on your dashboard.
+        </p>
       </div>
     );
   }

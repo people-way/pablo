@@ -1,21 +1,19 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { deleteSession, SESSION_COOKIE, sessionCookieOptions } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { accountsConfigured } from "@/lib/supabase/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (token) {
-    try {
-      await deleteSession(token);
-    } catch (error) {
-      console.error("Failed to delete session", error instanceof Error ? error.message : "");
-    }
+  if (!accountsConfigured()) {
+    return NextResponse.json({ ok: true });
   }
-  const response = NextResponse.json({ ok: true });
-  response.cookies.set(SESSION_COOKIE, "", sessionCookieOptions(0));
-  return response;
+  try {
+    const supabase = await createClient();
+    await supabase.auth.signOut({ scope: "local" });
+  } catch (error) {
+    console.error("Failed to sign out", error instanceof Error ? error.message : "");
+  }
+  return NextResponse.json({ ok: true });
 }

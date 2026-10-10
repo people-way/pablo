@@ -1,49 +1,12 @@
 import type { NextRequest } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { prepareAnalysisSave } from "@/lib/analysis-save";
+import { AccountStorageError, getCurrentUser } from "@/lib/auth";
 import { accountsUnavailableResponse } from "@/lib/accounts-response";
-import { accountsConfigured, ensureSchema, getPool } from "@/lib/db";
-import { isSampleUsername } from "@/lib/sample-games";
-import type {
-  OpeningPlayed,
-  OpeningsAnalysisResult,
-} from "@/app/api/analyze/openings/route";
+import { createClient } from "@/lib/supabase/server";
+import { accountsConfigured } from "@/lib/supabase/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-type SaveBody = {
-  result?: OpeningsAnalysisResult;
-  chessUsername?: unknown;
-  sample?: unknown;
-};
-
-function playedOpenings(result: OpeningsAnalysisResult): OpeningPlayed[] {
-  const source =
-    Array.isArray(result.openings) && result.openings.length > 0
-      ? result.openings
-      : (result.weaknesses ?? []).map((weakness) => ({
-          opening: weakness.opening,
-          color: weakness.color,
-          winRate: weakness.winRate,
-          gameCount: weakness.gameCount,
-          wins: Math.round((weakness.winRate / 100) * weakness.gameCount),
-          losses: 0,
-          draws: Math.max(
-            0,
-            weakness.gameCount - Math.round((weakness.winRate / 100) * weakness.gameCount),
-          ),
-        }));
-
-  return source.filter(
-    (opening) =>
-      opening &&
-      typeof opening.opening === "string" &&
-      opening.opening.trim().length > 0 &&
-      (opening.color === "white" || opening.color === "black") &&
-      Number.isFinite(opening.gameCount) &&
-      opening.gameCount > 0,
-  );
-}
 
 export async function POST(request: NextRequest) {
   if (!accountsConfigured()) {
@@ -54,9 +17,12 @@ export async function POST(request: NextRequest) {
   try {
     user = await getCurrentUser();
   } catch (error) {
-    console.error("Save auth lookup failed", error instanceof Error ? error.message : "");
+    console.error(
+      "Save auth lookup failed",
+      error instanceof AccountStorageError ? error.message : "",
+    );
     return Response.json(
-      { error: "Account storage is unavailable. Set DATABASE_URL and try again." },
+      { error: "Account storage is unavailable. Check the Supabase settings and try again." },
       { status: 503 },
     );
   }
@@ -64,128 +30,47 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  let body: SaveBody;
+  let body: unknown;
   try {
-    body = (await request.json()) as SaveBody;
+    body = await request.json();
   } catch {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const result = body.result;
-  const chessUsername =
-    typeof body.chessUsername === "string" && body.chessUsername.trim()
-      ? body.chessUsername.trim()
-      : result?.username ?? "";
-
-  if (!result || !chessUsername || !Number.isFinite(result.gameCount)) {
-    return Response.json({ error: "Missing result or chessUsername" }, { status: 400 });
+  const prepared = prepareAnalysisSave(
+    body && typeof body === "object" ? (body as Parameters<typeof prepareAnalysisSave>[0]) : {},
+  );
+  if (!prepared.ok) {
+    return Response.json({ error: prepared.error }, { status: prepared.status });
   }
 
-  if (body.sample === true || isSampleUsername(chessUsername)) {
-    return Response.json(
-      { error: "Sample reports stay off your account." },
-      { status: 400 },
-    );
-  }
-
-  const openings = playedOpenings(result);
-  const breakdown = openings.map((opening) => ({
-    opening: opening.opening,
-    color: opening.color,
-    winRate: opening.winRate,
-    gameCount: opening.gameCount,
-  }));
-
+  const save = prepared.save;
   try {
-    await ensureSchema();
-    const client = await getPool().connect();
-    try {
-      await client.query("BEGIN");
-      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
-        `${user.id}:${result.summary ?? ""}:${result.gameCount}`,
-      ]);
-
-      const recent = await client.query<{ id: string }>(
-        `SELECT id FROM analyses
-         WHERE user_id = $1
-           AND chess_com_username = $2
-           AND pablo_summary = $3
-           AND total_games = $4
-           AND run_at > NOW() - INTERVAL '20 seconds'
-         ORDER BY run_at DESC
-         LIMIT 1`,
-        [user.id, chessUsername, result.summary ?? "", result.gameCount],
-      );
-
-      let analysisId = recent.rows[0]?.id;
-      if (!analysisId) {
-        const inserted = await client.query<{ id: string }>(
-          `INSERT INTO analyses
-             (user_id, chess_com_username, total_games, wins, losses, draws, win_rate,
-              date_range_from, date_range_to, opening_breakdown, pablo_summary)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-           RETURNING id`,
-          [
-            user.id,
-            chessUsername,
-            result.gameCount,
-            result.wins,
-            result.losses,
-            result.draws,
-            result.winRate,
-            result.dateRange?.from ?? null,
-            result.dateRange?.to ?? null,
-            JSON.stringify(breakdown),
-            result.summary ?? "",
-          ],
-        );
-        analysisId = inserted.rows[0]?.id;
-      }
-
-      for (const opening of openings) {
-        await client.query(
-          `INSERT INTO opening_stats
-             (user_id, chess_com_username, opening_family, color, games_played, wins, win_rate)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
-           ON CONFLICT (user_id, chess_com_username, opening_family, color)
-           DO UPDATE SET
-             games_played = EXCLUDED.games_played,
-             wins = EXCLUDED.wins,
-             win_rate = EXCLUDED.win_rate,
-             last_updated = NOW()`,
-          [
-            user.id,
-            chessUsername,
-            opening.opening,
-            opening.color,
-            opening.gameCount,
-            opening.wins,
-            opening.winRate,
-          ],
-        );
-      }
-
-      if (!user.chess_com_username) {
-        await client.query(
-          `UPDATE users
-           SET chess_com_username = $1, last_seen = NOW()
-           WHERE id = $2 AND chess_com_username IS NULL`,
-          [chessUsername, user.id],
-        );
-      } else {
-        await client.query("UPDATE users SET last_seen = NOW() WHERE id = $1", [user.id]);
-      }
-
-      await client.query("COMMIT");
-      return Response.json({ ok: true, analysisId, openingsSaved: openings.length });
-    } catch (error) {
-      await client.query("ROLLBACK");
-      throw error;
-    } finally {
-      client.release();
-    }
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("pablo_save_analysis", {
+      p_chess_username: save.chessUsername,
+      p_total_games: save.totalGames,
+      p_wins: save.wins,
+      p_losses: save.losses,
+      p_draws: save.draws,
+      p_win_rate: save.winRate,
+      p_date_range_from: save.dateFrom,
+      p_date_range_to: save.dateTo,
+      p_opening_breakdown: save.breakdown,
+      p_summary: save.summary,
+      p_openings: save.openings,
+    });
+    if (error) throw new AccountStorageError(error.message);
+    return Response.json({
+      ok: true,
+      analysisId: data,
+      openingsSaved: save.openings.length,
+    });
   } catch (error) {
-    console.error("Failed to save analysis", error instanceof Error ? error.message : "");
+    console.error(
+      "Failed to save analysis",
+      error instanceof Error ? error.message : "",
+    );
     return Response.json({ error: "Couldn't save this analysis." }, { status: 500 });
   }
 }
