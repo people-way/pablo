@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { MoveAnalysis, MoveClass, NodeEval, ParsedMove, Side } from "@/lib/review/types";
 import { classLabel } from "@/lib/review/classify";
+import { classGlyph } from "@/lib/review/lines";
 import { formatEval, whiteBarShare } from "@/lib/review/scores";
 
 const CLASS_COLOR: Record<MoveClass, string> = {
@@ -55,13 +56,20 @@ export function EvalBar({
   );
 }
 
+export type EvalMark = {
+  ply: number;
+  classification: MoveClass;
+};
+
 export function EvalChart({
   evals,
   ply,
+  marks = [],
   onPick,
 }: {
   evals: Array<NodeEval | null>;
   ply: number;
+  marks?: EvalMark[];
   onPick: (ply: number) => void;
 }) {
   const known = evals.findIndex((evaluation) => evaluation == null);
@@ -84,31 +92,68 @@ export function EvalChart({
     return `${x},${y}`;
   });
 
+  const visibleMarks = marks.filter((mark) => mark.ply >= 0 && mark.ply < count);
+
   return (
-    <button
-      type="button"
-      className="w-full"
-      aria-label="Courbe d'évaluation, cliquer pour aller au coup"
-      onClick={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const ratio = (event.clientX - rect.left) / rect.width;
-        const next = Math.round(Math.min(1, Math.max(0, ratio)) * (count - 1));
-        onPick(next);
-      }}
-    >
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-24 w-full">
-        <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="#3d3428" strokeWidth="1" />
-        <polyline fill="none" stroke="#c9a84c" strokeWidth="2.5" points={points.join(" ")} />
-        {evals[ply] && ply < count ? (
-          <circle
-            cx={(ply / (count - 1)) * width}
-            cy={height - whiteBarShare(evals[ply]?.cp ?? 0) * height}
-            r="4.5"
-            fill="#f0ede8"
-          />
-        ) : null}
-      </svg>
-    </button>
+    <div>
+      <button
+        type="button"
+        className="w-full"
+        aria-label="Courbe d'évaluation, les points colorés sont les coups faibles, cliquer pour aller au coup"
+        onClick={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          const ratio = (event.clientX - rect.left) / rect.width;
+          const next = Math.round(Math.min(1, Math.max(0, ratio)) * (count - 1));
+          onPick(next);
+        }}
+      >
+        <svg viewBox={`0 0 ${width} ${height}`} className="h-24 w-full">
+          <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="#3d3428" strokeWidth="1" />
+          <polyline fill="none" stroke="#c9a84c" strokeWidth="2.5" points={points.join(" ")} />
+          {visibleMarks.map((mark) => (
+            <circle
+              key={mark.ply}
+              cx={(mark.ply / (count - 1)) * width}
+              cy={height - whiteBarShare(evals[mark.ply]?.cp ?? 0) * height}
+              r={mark.classification === "blunder" ? 4.5 : mark.classification === "mistake" ? 4 : 3.2}
+              fill={classColor(mark.classification)}
+              stroke="#1c140f"
+              strokeWidth="0.8"
+            />
+          ))}
+          {evals[ply] && ply < count ? (
+            <circle
+              cx={(ply / (count - 1)) * width}
+              cy={height - whiteBarShare(evals[ply]?.cp ?? 0) * height}
+              r="4.5"
+              fill="#f0ede8"
+              stroke="#1c140c"
+              strokeWidth="1"
+            />
+          ) : null}
+        </svg>
+      </button>
+      {visibleMarks.length > 0 ? <MarkLegend /> : null}
+    </div>
+  );
+}
+
+function MarkLegend() {
+  const items = [
+    ["inaccuracy", "?! Imprécision"],
+    ["mistake", "? Erreur"],
+    ["blunder", "?? Gaffe"],
+  ] as const;
+
+  return (
+    <p className="mt-1 flex flex-wrap gap-3 text-[11px]" style={{ color: "var(--text-muted)" }}>
+      {items.map(([classification, label]) => (
+        <span key={classification} className="inline-flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: classColor(classification) }} />
+          {label}
+        </span>
+      ))}
+    </p>
   );
 }
 
@@ -171,6 +216,8 @@ function MoveButton({
     return <span />;
   }
 
+  const glyph = analysis ? classGlyph(analysis.classification) : "";
+
   return (
     <button
       type="button"
@@ -182,8 +229,10 @@ function MoveButton({
         background: active ? "rgba(201,168,76,0.16)" : "transparent",
       }}
       title={analysis ? classLabel(analysis.classification) : undefined}
+      aria-label={analysis ? `${move.san}, ${classLabel(analysis.classification)}` : move.san}
     >
       {move.san}
+      {glyph ? <span aria-hidden="true">{` ${glyph}`}</span> : null}
     </button>
   );
 }
