@@ -50,6 +50,9 @@ type Loaded =
   | { kind: "game"; game: ParsedGame; pgn: string; viewer: Side | null }
   | { kind: "position"; fen: string };
 
+type ExploreMove = { san: string; uci: string; fen: string };
+type Explore = { rootFen: string; moves: ExploreMove[]; cursor: number };
+
 type PublicGame = {
   id: string;
   pgn: string;
@@ -170,7 +173,10 @@ export function RevueApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const displayedFen = useMemo(() => viewFen(loaded, ply, trail), [loaded, ply, trail]);
+  const displayedFen = useMemo(() => {
+    const fen = viewFen(loaded, ply, null);
+    return isBrowsing(trail) ? fenOnTrail(trail, fen) : fen;
+  }, [loaded, ply, trail]);
   const game = loaded.kind === "game" ? loaded.game : null;
   const liveEnabled = loaded.kind !== "idle" && !batch;
 
@@ -715,7 +721,7 @@ export function RevueApp() {
         : game.moves[ply - 1]?.comment ?? ""
       : "";
   const lastMove = lastSquares(loaded, ply, trail);
-  const branchFen = mainFen(loaded, ply);
+  const branchFen = viewFen(loaded, ply, null);
   const savedLines = browsing || loaded.kind === "idle" ? [] : variationsAt(trail, game ? ply : null, branchFen);
   const progress = batch ? Math.round((batch.done / batch.total) * 100) : 0;
   const eta = batch
@@ -1261,7 +1267,15 @@ export function RevueApp() {
   );
 }
 
-function mainFen(loaded: Loaded, ply: number) {
+function viewFen(loaded: Loaded, ply: number, explore: Explore | null) {
+  if (explore) {
+    if (explore.cursor <= 0) {
+      return explore.rootFen;
+    }
+
+    return explore.moves[explore.cursor - 1]?.fen ?? explore.rootFen;
+  }
+
   if (loaded.kind === "position") {
     return loaded.fen;
   }
@@ -1275,11 +1289,6 @@ function mainFen(loaded: Loaded, ply: number) {
   }
 
   return START_FEN;
-}
-
-function viewFen(loaded: Loaded, ply: number, trail: VariationTrail) {
-  const fen = mainFen(loaded, ply);
-  return isBrowsing(trail) ? fenOnTrail(trail, fen) : fen;
 }
 
 function lastSquares(loaded: Loaded, ply: number, trail: VariationTrail) {
