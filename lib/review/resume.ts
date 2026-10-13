@@ -1,4 +1,5 @@
 import type { MoveAnalysis, MoveClass, NodeEval, Side } from "./types";
+import { parseTrail, type VariationTrail } from "./variations";
 
 /** Separate from the explicit save list: the game currently open, kept across reloads. */
 export const RESUME_STORAGE_KEY = "pablo.revue.current.v1";
@@ -17,6 +18,8 @@ export type ResumeSnapshot = {
   savedId: string | null;
   analyses: Array<MoveAnalysis | null>;
   nodeEvals: Array<NodeEval | null>;
+  /** Explored lines. Absent on snapshots from before variations were kept. */
+  trail?: VariationTrail;
 };
 
 export function readResume(storage: Pick<Storage, "getItem">): ResumeSnapshot | null {
@@ -72,7 +75,7 @@ export function parseResume(value: unknown): ResumeSnapshot | null {
     return null;
   }
 
-  return {
+  const snapshot: ResumeSnapshot = {
     savedAt: row.savedAt,
     pgn,
     fen,
@@ -84,6 +87,13 @@ export function parseResume(value: unknown): ResumeSnapshot | null {
     analyses: row.analyses,
     nodeEvals: row.nodeEvals,
   };
+  const trail = "trail" in row && row.trail != null ? parseTrail(row.trail) : null;
+
+  if (trail) {
+    snapshot.trail = trail;
+  }
+
+  return snapshot;
 }
 
 function isMoveAnalysis(value: unknown): value is MoveAnalysis | null {

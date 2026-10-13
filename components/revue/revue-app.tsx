@@ -13,10 +13,27 @@ import { formatCentipawnLoss, formatEval, sideToMove, toWhiteView } from "@/lib/
 import { formatEta, remainingMillis } from "@/lib/review/eta";
 import { clearResume, readResume, writeResume } from "@/lib/review/resume";
 import { readSaved, removeSaved, upsertSaved } from "@/lib/review/storage";
+import {
+  activeVariation,
+  emptyTrail,
+  endTrail,
+  fenOnTrail,
+  followOnTrail,
+  isBrowsing,
+  jumpTrail,
+  leaveTrail,
+  lineFromUci,
+  openVariation,
+  playOnTrail,
+  stepTrail,
+  variationsAt,
+  type VariationTrail,
+} from "@/lib/review/variations";
 import type { MoveAnalysis, NodeEval, ParsedGame, PgnDocument, SavedReview, Side } from "@/lib/review/types";
 import { ChessBoard } from "./board";
 import { CoachPanel } from "./coach-panel";
 import { useMoveSwipe } from "./use-move-swipe";
+import { VariationStrip } from "./variation-strip";
 import { classColor, EvalBar, EvalChart, MoveList } from "./widgets";
 
 const DEPTHS = [8, 10, 12, 14, 16];
@@ -32,9 +49,6 @@ type Loaded =
   | { kind: "idle" }
   | { kind: "game"; game: ParsedGame; pgn: string; viewer: Side | null }
   | { kind: "position"; fen: string };
-
-type ExploreMove = { san: string; uci: string; fen: string };
-type Explore = { rootFen: string; moves: ExploreMove[]; cursor: number };
 
 type PublicGame = {
   id: string;
@@ -63,7 +77,7 @@ export function RevueApp() {
   const [remoteLoading, setRemoteLoading] = useState(false);
   const [loaded, setLoaded] = useState<Loaded>({ kind: "idle" });
   const [ply, setPly] = useState(0);
-  const [explore, setExplore] = useState<Explore | null>(null);
+  const [trail, setTrail] = useState<VariationTrail>(emptyTrail);
   const [orientation, setOrientation] = useState<Side>("w");
   const [depth, setDepth] = useState(16);
   const [analyses, setAnalyses] = useState<Array<MoveAnalysis | null>>([]);
@@ -81,6 +95,7 @@ export function RevueApp() {
   const sessionGen = useRef(0);
   const resumeGen = useRef(0);
   const moveByRef = useRef<(direction: number) => void>(() => {});
+  const edgeRef = useRef<(edge: "start" | "end") => void>(() => {});
   const [importOpen, setImportOpen] = useState(true);
   const swipe = useMoveSwipe((direction) => {
     moveByRef.current(direction);
@@ -139,11 +154,13 @@ export function RevueApp() {
             : Array.from({ length: parsed.moves.length + 1 }, () => null),
         );
         setSavedId(resume.savedId);
+        setTrail(resume.trail ?? emptyTrail());
       } else if (resume.fen) {
         openPosition(resume.fen);
         setDepth(knownDepth(resume.depth));
         setOrientation(resume.orientation);
         setSavedId(resume.savedId);
+        setTrail(resume.trail ?? emptyTrail());
       }
     } catch (error) {
       clearResume(window.localStorage);
@@ -153,14 +170,14 @@ export function RevueApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const displayedFen = useMemo(() => viewFen(loaded, ply, explore), [loaded, ply, explore]);
+  const displayedFen = useMemo(() => viewFen(loaded, ply, trail), [loaded, ply, trail]);
   const game = loaded.kind === "game" ? loaded.game : null;
   const liveEnabled = loaded.kind !== "idle" && !batch;
 
   useEffect(() => {
     moveByRef.current = (direction: number) => {
-      if (explore) {
-        setExplore((current) => shiftExplore(current, direction));
+      if (isBrowsing(trail)) {
+        setTrail((current) => stepTrail(current, direction));
         return;
       }
 
@@ -170,7 +187,22 @@ export function RevueApp() {
 
       setPly((current) => Math.min(game.moves.length, Math.max(0, current + direction)));
     };
-  }, [explore, game]);
+    edgeRef.current = (edge) => {
+      if (isBrowsing(trail)) {
+        setTrail((current) => (edge === "start" ? jumpTrail(current, 0) : endTrail(current)));
+        return;
+      }
+
+      if (edge === "start") {
+        setPly(0);
+        return;
+      }
+
+      if (game) {
+        setPly(game.moves.length);
+      }
+    };
+  }, [trail, game]);
 
   useEffect(() => {
     if (loaded.kind === "idle") {
@@ -188,6 +220,7 @@ export function RevueApp() {
       savedId,
       analyses,
       nodeEvals,
+      trail,
     };
     const gen = resumeGen.current;
     const timer = window.setTimeout(() => {
@@ -206,7 +239,7 @@ export function RevueApp() {
     }, 200);
 
     return () => window.clearTimeout(timer);
-  }, [loaded, depth, ply, orientation, savedId, analyses, nodeEvals]);
+  }, [loaded, depth, ply, orientation, savedId, analyses, nodeEvals, trail]);
 
   useEffect(() => {
     if (!engineReady || !liveEnabled) {
@@ -281,14 +314,12 @@ export function RevueApp() {
       } else if (event.key === "ArrowRight") {
         event.preventDefault();
         moveByRef.current(1);
-      } else if (event.key === "Home") {
+      } else       if (event.key === "Home") {
         event.preventDefault();
-        exitExplore();
-        setPly(0);
-      } else if (event.key === "End" && game) {
+        edgeRef.current("start");
+      } else if (event.key === "End") {
         event.preventDefault();
-        exitExplore();
-        setPly(game.moves.length);
+        edgeRef.current("end");
       } else if (event.key === "f" || event.key === "F") {
         event.preventDefault();
         setOrientation((side) => (side === "w" ? "b" : "w"));
@@ -297,7 +328,7 @@ export function RevueApp() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [game]);
+  }, []);
 
   function beginLoad() {
     sessionGen.current += 1;
@@ -305,8 +336,8 @@ export function RevueApp() {
     setBatch(null);
   }
 
-  function exitExplore() {
-    setExplore(null);
+  function returnToGame() {
+    setTrail((current) => leaveTrail(current));
     setLive(null);
   }
 
@@ -332,7 +363,7 @@ export function RevueApp() {
     const parsed = parsePgn(pgn);
     setLoaded({ kind: "game", game: parsed, pgn, viewer });
     setPly(0);
-    setExplore(null);
+    setTrail(emptyTrail());
     setLive(null);
     setAnalyses(Array.from({ length: parsed.moves.length }, () => null));
     setNodeEvals(Array.from({ length: parsed.moves.length + 1 }, () => null));
@@ -348,7 +379,7 @@ export function RevueApp() {
     const fen = parseFen(rawFen);
     setLoaded({ kind: "position", fen });
     setPly(0);
-    setExplore({ rootFen: fen, moves: [], cursor: 0 });
+    setTrail(emptyTrail());
     setLive(null);
     setAnalyses([]);
     setNodeEvals([]);
@@ -399,35 +430,14 @@ export function RevueApp() {
     }
 
     const fen = displayedFen;
-    const chess = new Chess(fen);
-    const played: ExploreMove[] = [];
+    const moves = lineFromUci(fen, uciMoves);
 
-    for (const uci of uciMoves) {
-      try {
-        const move = chess.move({
-          from: uci.slice(0, 2),
-          to: uci.slice(2, 4),
-          promotion: uci[4],
-        });
-        played.push({ san: move.san, uci, fen: move.after });
-      } catch {
-        break;
-      }
-    }
-
-    if (played.length === 0) {
+    if (moves.length === 0) {
       return;
     }
 
-    setExplore((current) => {
-      const base = current ?? { rootFen: fen, moves: [], cursor: 0 };
-      const prefix = base.moves.slice(0, base.cursor);
-      return {
-        rootFen: base.rootFen,
-        moves: [...prefix, ...played],
-        cursor: prefix.length + 1,
-      };
-    });
+    const anchorPly = loaded.kind === "game" ? ply : null;
+    setTrail((current) => followOnTrail(current, { id: crypto.randomUUID(), rootFen: fen, anchorPly, moves }));
   }
 
   function playUci(uci: string) {
@@ -450,12 +460,14 @@ export function RevueApp() {
       return;
     }
 
-    setExplore((current) => {
-      const base = current ?? { rootFen: fen, moves: [], cursor: 0 };
-      const moves = base.moves.slice(0, base.cursor);
-      moves.push({ san: move.san, uci, fen: move.after });
-      return { rootFen: base.rootFen, moves, cursor: moves.length };
-    });
+    if (!move) {
+      return;
+    }
+
+    const anchorPly = loaded.kind === "game" ? ply : null;
+    setTrail((current) =>
+      playOnTrail(current, { id: crypto.randomUUID(), rootFen: fen, anchorPly, san: move.san, uci }),
+    );
   }
 
   async function runAnalysis() {
@@ -468,7 +480,7 @@ export function RevueApp() {
     const controller = new AbortController();
     const gen = sessionGen.current;
     batchAbort.current = controller;
-    exitExplore();
+    returnToGame();
     setMessage(null);
     setBatch({ done: 0, total: game.moves.length + 1, depthNow: 0, startedAt: performance.now() });
 
@@ -543,7 +555,7 @@ export function RevueApp() {
     beginLoad();
     setLoaded({ kind: "idle" });
     setPly(0);
-    setExplore(null);
+    setTrail(emptyTrail());
     setLive(null);
     setAnalyses([]);
     setNodeEvals([]);
@@ -613,12 +625,13 @@ export function RevueApp() {
       result: game?.result ?? "*",
       date: game?.date ?? "",
       pgn: loaded.kind === "game" ? loaded.pgn : null,
-      fen: loaded.kind === "position" ? loaded.fen : explore?.rootFen ?? null,
+      fen: loaded.kind === "position" ? loaded.fen : activeVariation(trail)?.rootFen ?? null,
       depth,
       ply,
       viewer: loaded.kind === "game" ? loaded.viewer : null,
       analyses,
       nodeEvals,
+      trail,
     };
 
     try {
@@ -648,10 +661,12 @@ export function RevueApp() {
             : Array.from({ length: parsed.moves.length + 1 }, () => null),
         );
         setSavedId(review.id);
+        setTrail(review.trail ?? emptyTrail());
       } else if (review.fen) {
         openPosition(review.fen);
         setDepth(review.depth || 16);
         setSavedId(review.id);
+        setTrail(review.trail ?? emptyTrail());
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Cette sauvegarde est illisible.");
@@ -683,22 +698,25 @@ export function RevueApp() {
       viewer,
     });
   }, [game, analyses, viewer]);
-  const currentAnalysis = game && !explore && ply > 0 ? analyses[ply - 1] : null;
-  const currentNote = session && !explore && ply > 0 ? session.notes[ply - 1] : null;
+  const browsing = isBrowsing(trail);
+  const currentAnalysis = game && !browsing && ply > 0 ? analyses[ply - 1] : null;
+  const currentNote = session && !browsing && ply > 0 ? session.notes[ply - 1] : null;
   const currentLive = live?.fen === displayedFen ? live.search : null;
-  const storedEval = game && !explore ? nodeEvals[ply] ?? null : null;
+  const storedEval = game && !browsing ? nodeEvals[ply] ?? null : null;
   const barEval = liveEval(displayedFen, currentLive) ?? storedEval;
   const hintUci =
     currentLive?.lines[0]?.pvUci[0] ??
-    (!explore && game ? analyses[ply]?.bestUci ?? null : null);
-  const positionComment = explore
+    (!browsing && game ? analyses[ply]?.bestUci ?? null : null);
+  const positionComment = browsing
     ? ""
     : game
       ? ply === 0
         ? game.startComment
         : game.moves[ply - 1]?.comment ?? ""
       : "";
-  const lastMove = lastSquares(loaded, ply, explore);
+  const lastMove = lastSquares(loaded, ply, trail);
+  const branchFen = mainFen(loaded, ply);
+  const savedLines = browsing || loaded.kind === "idle" ? [] : variationsAt(trail, game ? ply : null, branchFen);
   const progress = batch ? Math.round((batch.done / batch.total) * 100) : 0;
   const eta = batch
     ? formatEta(
@@ -1021,37 +1039,26 @@ export function RevueApp() {
               </div>
             </div>
             <div className="revue-nav flex w-full min-w-0 flex-wrap gap-2">
-              <NavButton label="Début" onClick={() => { exitExplore(); setPly(0); }} />
-              <NavButton label="Précédent" onClick={() => (explore ? setExplore((current) => shiftExplore(current, -1)) : setPly((current) => Math.max(0, current - 1)))} />
-              <NavButton
-                label="Suivant"
-                onClick={() =>
-                  explore
-                    ? setExplore((current) => shiftExplore(current, 1))
-                    : setPly((current) => (game ? Math.min(game.moves.length, current + 1) : current))
-                }
-              />
-              <NavButton label="Fin" onClick={() => { exitExplore(); if (game) setPly(game.moves.length); }} />
+              <NavButton label="Début" onClick={() => edgeRef.current("start")} />
+              <NavButton label="Précédent" onClick={() => moveByRef.current(-1)} />
+              <NavButton label="Suivant" onClick={() => moveByRef.current(1)} />
+              <NavButton label="Fin" onClick={() => edgeRef.current("end")} />
               <NavButton label="Retourner" onClick={() => setOrientation((side) => (side === "w" ? "b" : "w"))} />
-              {game ? (
-                <NavButton
-                  label={explore ? "Retour à la partie" : "Explorer la position"}
-                  onClick={() => {
-                    if (explore) {
-                      exitExplore();
-                      return;
-                    }
-                    setExplore({ rootFen: displayedFen, moves: [], cursor: 0 });
-                  }}
-                />
-              ) : null}
             </div>
+            <VariationStrip
+              trail={trail}
+              savedLines={savedLines}
+              returnLabel={browsing ? (game ? "Retour à la partie" : "Position de départ") : null}
+              onJump={(cursor) => setTrail((current) => jumpTrail(current, cursor))}
+              onOpen={(id) => setTrail((current) => openVariation(current, id))}
+              onReturn={returnToGame}
+            />
             <p className="revue-hint text-xs" style={{ color: "var(--text-muted)" }}>
               Balayez l&apos;échiquier pour avancer ou reculer. Flèches, F pour retourner. La flèche dorée est le coup conseillé.
             </p>
-            {game && !explore ? (
+            {game && !browsing ? (
               <div className="revue-chart">
-                <EvalChart evals={nodeEvals} ply={ply} onPick={(next) => { exitExplore(); setPly(next); }} />
+                <EvalChart evals={nodeEvals} ply={ply} onPick={(next) => { returnToGame(); setPly(next); }} />
               </div>
             ) : null}
           </div>
@@ -1153,26 +1160,17 @@ export function RevueApp() {
               </div>
             ) : null}
 
-            {session && !explore ? (
+            {session && !browsing ? (
               <div className="revue-coach">
                 <CoachPanel
                   session={session}
                   phase={session.phases[ply] ?? "ouverture"}
                   onPick={(next) => {
-                    exitExplore();
+                    returnToGame();
                     setPly(next);
                   }}
                 />
               </div>
-            ) : null}
-
-            {explore ? (
-              <p className="revue-explore text-sm" style={{ color: "var(--gold)" }}>
-                Mode position
-                {explore.moves.length > 0
-                  ? ` · ${explore.moves.slice(0, explore.cursor).map((move) => move.san).join(" ")}`
-                  : ""}
-              </p>
             ) : null}
 
             {currentAnalysis ? (
@@ -1244,9 +1242,9 @@ export function RevueApp() {
                   moves={game.moves}
                   analyses={analyses}
                   ply={ply}
-                  exploring={Boolean(explore)}
+                  exploring={browsing}
                   onPick={(next) => {
-                    exitExplore();
+                    returnToGame();
                     setPly(next);
                   }}
                 />
@@ -1263,15 +1261,7 @@ export function RevueApp() {
   );
 }
 
-function viewFen(loaded: Loaded, ply: number, explore: Explore | null) {
-  if (explore) {
-    if (explore.cursor <= 0) {
-      return explore.rootFen;
-    }
-
-    return explore.moves[explore.cursor - 1]?.fen ?? explore.rootFen;
-  }
-
+function mainFen(loaded: Loaded, ply: number) {
   if (loaded.kind === "position") {
     return loaded.fen;
   }
@@ -1287,36 +1277,31 @@ function viewFen(loaded: Loaded, ply: number, explore: Explore | null) {
   return START_FEN;
 }
 
-function lastSquares(loaded: Loaded, ply: number, explore: Explore | null) {
-  if (explore && explore.cursor > 0) {
-    const uci = explore.moves[explore.cursor - 1]?.uci ?? "";
-    return { from: uci.slice(0, 2) as Square, to: uci.slice(2, 4) as Square };
+function viewFen(loaded: Loaded, ply: number, trail: VariationTrail) {
+  const fen = mainFen(loaded, ply);
+  return isBrowsing(trail) ? fenOnTrail(trail, fen) : fen;
+}
+
+function lastSquares(loaded: Loaded, ply: number, trail: VariationTrail) {
+  const line = activeVariation(trail);
+
+  if (line && trail.cursor > 0) {
+    return squares(line.moves[trail.cursor - 1]?.uci ?? "");
   }
 
-  if (!explore && loaded.kind === "game" && ply > 0) {
-    const uci = loaded.game.moves[ply - 1]?.uci ?? "";
-    return { from: uci.slice(0, 2) as Square, to: uci.slice(2, 4) as Square };
+  if (!line && loaded.kind === "game" && ply > 0) {
+    return squares(loaded.game.moves[ply - 1]?.uci ?? "");
   }
 
   return null;
 }
 
-function shiftExplore(current: Explore | null, direction: number) {
-  if (!current) {
-    return current;
-  }
-
-  const next = current.cursor + direction;
-
-  if (next < 0) {
+function squares(uci: string) {
+  if (uci.length < 4) {
     return null;
   }
 
-  if (next > current.moves.length) {
-    return current;
-  }
-
-  return { ...current, cursor: next };
+  return { from: uci.slice(0, 2) as Square, to: uci.slice(2, 4) as Square };
 }
 
 function liveEval(fen: string, live: EngineSearch | null): NodeEval | null {
