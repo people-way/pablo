@@ -1,3 +1,5 @@
+import type { VariationTrail } from "./variations";
+
 export type Side = "w" | "b";
 
 /** Evaluation from White's point of view. Mate is signed: positive means White is mating. */
@@ -87,4 +89,6 @@ export type SavedReview = {
   viewer: Side | null;
   analyses: Array<MoveAnalysis | null>;
   nodeEvals: Array<NodeEval | null>;
+  /** Explored lines. Absent on saves from before variations were kept. */
+  trail?: VariationTrail;
 };

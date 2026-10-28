@@ -10,13 +10,37 @@ import { ReviewEngine, type EngineSearch } from "@/lib/review/engine-client";
 import { parseFen, parsePgn, parsePgnCollection, ReviewInputError, sanLine } from "@/lib/review/parse";
 import { SAMPLE_PGN } from "@/lib/review/sample";
 import { formatCentipawnLoss, formatEval, sideToMove, toWhiteView } from "@/lib/review/scores";
+import { formatEta, remainingMillis } from "@/lib/review/eta";
+import { clearResume, readResume, writeResume } from "@/lib/review/resume";
 import { readSaved, removeSaved, upsertSaved } from "@/lib/review/storage";
+import {
+  activeVariation,
+  emptyTrail,
+  endTrail,
+  fenOnTrail,
+  followOnTrail,
+  isBrowsing,
+  jumpTrail,
+  leaveTrail,
+  lineFromUci,
+  openVariation,
+  playOnTrail,
+  stepTrail,
+  variationsAt,
+  type VariationTrail,
+} from "@/lib/review/variations";
 import type { MoveAnalysis, NodeEval, ParsedGame, PgnDocument, SavedReview, Side } from "@/lib/review/types";
 import { ChessBoard } from "./board";
 import { CoachPanel } from "./coach-panel";
+import { useMoveSwipe } from "./use-move-swipe";
+import { VariationStrip } from "./variation-strip";
 import { classColor, EvalBar, EvalChart, MoveList } from "./widgets";
 
 const DEPTHS = [8, 10, 12, 14, 16];
+
+function knownDepth(value: number) {
+  return DEPTHS.includes(value) ? value : 16;
+}
 const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 type Tab = "pgn" | "chesscom" | "fen" | "saved";
@@ -42,7 +66,7 @@ type PublicGame = {
   timeControl: string | null;
 };
 
-type Batch = { done: number; total: number; depthNow: number };
+type Batch = { done: number; total: number; depthNow: number; startedAt: number };
 
 export function RevueApp() {
   const engineRef = useRef<ReviewEngine | null>(null);
@@ -56,7 +80,7 @@ export function RevueApp() {
   const [remoteLoading, setRemoteLoading] = useState(false);
   const [loaded, setLoaded] = useState<Loaded>({ kind: "idle" });
   const [ply, setPly] = useState(0);
-  const [explore, setExplore] = useState<Explore | null>(null);
+  const [trail, setTrail] = useState<VariationTrail>(emptyTrail);
   const [orientation, setOrientation] = useState<Side>("w");
   const [depth, setDepth] = useState(16);
   const [analyses, setAnalyses] = useState<Array<MoveAnalysis | null>>([]);
@@ -70,6 +94,15 @@ export function RevueApp() {
   const [pgnChoices, setPgnChoices] = useState<PgnDocument[]>([]);
   const boardAnchor = useRef<HTMLElement | null>(null);
   const liveStamp = useRef(0);
+  const quotaWarned = useRef(false);
+  const sessionGen = useRef(0);
+  const resumeGen = useRef(0);
+  const moveByRef = useRef<(direction: number) => void>(() => {});
+  const edgeRef = useRef<(edge: "start" | "end") => void>(() => {});
+  const [importOpen, setImportOpen] = useState(true);
+  const swipe = useMoveSwipe((direction) => {
+    moveByRef.current(direction);
+  });
 
   useEffect(() => {
     const engine = new ReviewEngine();
@@ -100,11 +133,119 @@ export function RevueApp() {
 
   useEffect(() => {
     setSaved(readSaved(window.localStorage));
+    const resume = readResume(window.localStorage);
+
+    if (!resume) {
+      return;
+    }
+
+    try {
+      if (resume.pgn) {
+        openGame(resume.pgn, resume.viewer);
+        const parsed = parsePgn(resume.pgn);
+        setPly(Math.min(Math.max(0, resume.ply), parsed.moves.length));
+        setDepth(knownDepth(resume.depth));
+        setOrientation(resume.orientation);
+        setAnalyses(
+          resume.analyses.length === parsed.moves.length
+            ? resume.analyses
+            : Array.from({ length: parsed.moves.length }, () => null),
+        );
+        setNodeEvals(
+          resume.nodeEvals.length === parsed.moves.length + 1
+            ? resume.nodeEvals
+            : Array.from({ length: parsed.moves.length + 1 }, () => null),
+        );
+        setSavedId(resume.savedId);
+        setTrail(resume.trail ?? emptyTrail());
+      } else if (resume.fen) {
+        openPosition(resume.fen);
+        setDepth(knownDepth(resume.depth));
+        setOrientation(resume.orientation);
+        setSavedId(resume.savedId);
+        setTrail(resume.trail ?? emptyTrail());
+      }
+    } catch (error) {
+      clearResume(window.localStorage);
+      setMessage(error instanceof Error ? error.message : "La partie en cours est illisible.");
+    }
+    // Restore once, from the snapshot written on the previous visit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const displayedFen = useMemo(() => viewFen(loaded, ply, explore), [loaded, ply, explore]);
+  const displayedFen = useMemo(() => {
+    const fen = viewFen(loaded, ply, null);
+    return isBrowsing(trail) ? fenOnTrail(trail, fen) : fen;
+  }, [loaded, ply, trail]);
   const game = loaded.kind === "game" ? loaded.game : null;
   const liveEnabled = loaded.kind !== "idle" && !batch;
+
+  useEffect(() => {
+    moveByRef.current = (direction: number) => {
+      if (isBrowsing(trail)) {
+        setTrail((current) => stepTrail(current, direction));
+        return;
+      }
+
+      if (!game) {
+        return;
+      }
+
+      setPly((current) => Math.min(game.moves.length, Math.max(0, current + direction)));
+    };
+    edgeRef.current = (edge) => {
+      if (isBrowsing(trail)) {
+        setTrail((current) => (edge === "start" ? jumpTrail(current, 0) : endTrail(current)));
+        return;
+      }
+
+      if (edge === "start") {
+        setPly(0);
+        return;
+      }
+
+      if (game) {
+        setPly(game.moves.length);
+      }
+    };
+  }, [trail, game]);
+
+  useEffect(() => {
+    if (loaded.kind === "idle") {
+      return;
+    }
+
+    const snapshot = {
+      savedAt: new Date().toISOString(),
+      pgn: loaded.kind === "game" ? loaded.pgn : null,
+      fen: loaded.kind === "position" ? loaded.fen : null,
+      depth,
+      ply,
+      viewer: loaded.kind === "game" ? loaded.viewer : null,
+      orientation,
+      savedId,
+      analyses,
+      nodeEvals,
+      trail,
+    };
+    const gen = resumeGen.current;
+    const timer = window.setTimeout(() => {
+      if (resumeGen.current !== gen) {
+        return;
+      }
+
+      try {
+        writeResume(window.localStorage, snapshot);
+      } catch {
+        if (!quotaWarned.current) {
+          quotaWarned.current = true;
+          setMessage("La reprise automatique a échoué (espace plein).");
+        }
+      }
+    }, 200);
+
+    return () => window.clearTimeout(timer);
+  }, [loaded, depth, ply, orientation, savedId, analyses, nodeEvals, trail]);
 
   useEffect(() => {
     if (!engineReady || !liveEnabled) {
@@ -175,59 +316,34 @@ export function RevueApp() {
 
       if (event.key === "ArrowLeft") {
         event.preventDefault();
-        step(-1);
+        moveByRef.current(-1);
       } else if (event.key === "ArrowRight") {
         event.preventDefault();
-        step(1);
+        moveByRef.current(1);
       } else if (event.key === "Home") {
         event.preventDefault();
-        exitExplore();
-        setPly(0);
-      } else if (event.key === "End" && game) {
+        edgeRef.current("start");
+      } else if (event.key === "End") {
         event.preventDefault();
-        exitExplore();
-        setPly(game.moves.length);
+        edgeRef.current("end");
       } else if (event.key === "f" || event.key === "F") {
         event.preventDefault();
         setOrientation((side) => (side === "w" ? "b" : "w"));
       }
     }
 
-    function step(direction: number) {
-      if (explore) {
-        setExplore((current) => {
-          if (!current) {
-            return current;
-          }
-
-          const next = current.cursor + direction;
-
-          if (next < 0) {
-            return null;
-          }
-
-          if (next > current.moves.length) {
-            return current;
-          }
-
-          return { ...current, cursor: next };
-        });
-        return;
-      }
-
-      if (!game) {
-        return;
-      }
-
-      setPly((current) => Math.min(game.moves.length, Math.max(0, current + direction)));
-    }
-
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [explore, game]);
+  }, []);
 
-  function exitExplore() {
-    setExplore(null);
+  function beginLoad() {
+    sessionGen.current += 1;
+    batchAbort.current?.abort();
+    setBatch(null);
+  }
+
+  function returnToGame() {
+    setTrail((current) => leaveTrail(current));
     setLive(null);
   }
 
@@ -238,17 +354,22 @@ export function RevueApp() {
       active.blur();
     }
 
+    if (window.innerWidth < 1024) {
+      return;
+    }
+
     window.requestAnimationFrame(() => {
       boardAnchor.current?.scrollIntoView({ block: "start" });
     });
   }
 
   function openGame(pgn: string, viewer: Side | null) {
-    batchAbort.current?.abort();
+    beginLoad();
+    setImportOpen(false);
     const parsed = parsePgn(pgn);
     setLoaded({ kind: "game", game: parsed, pgn, viewer });
     setPly(0);
-    setExplore(null);
+    setTrail(emptyTrail());
     setLive(null);
     setAnalyses(Array.from({ length: parsed.moves.length }, () => null));
     setNodeEvals(Array.from({ length: parsed.moves.length + 1 }, () => null));
@@ -259,11 +380,12 @@ export function RevueApp() {
   }
 
   function openPosition(rawFen: string) {
-    batchAbort.current?.abort();
+    beginLoad();
+    setImportOpen(false);
     const fen = parseFen(rawFen);
     setLoaded({ kind: "position", fen });
     setPly(0);
-    setExplore({ rootFen: fen, moves: [], cursor: 0 });
+    setTrail(emptyTrail());
     setLive(null);
     setAnalyses([]);
     setNodeEvals([]);
@@ -314,35 +436,14 @@ export function RevueApp() {
     }
 
     const fen = displayedFen;
-    const chess = new Chess(fen);
-    const played: ExploreMove[] = [];
+    const moves = lineFromUci(fen, uciMoves);
 
-    for (const uci of uciMoves) {
-      try {
-        const move = chess.move({
-          from: uci.slice(0, 2),
-          to: uci.slice(2, 4),
-          promotion: uci[4],
-        });
-        played.push({ san: move.san, uci, fen: move.after });
-      } catch {
-        break;
-      }
-    }
-
-    if (played.length === 0) {
+    if (moves.length === 0) {
       return;
     }
 
-    setExplore((current) => {
-      const base = current ?? { rootFen: fen, moves: [], cursor: 0 };
-      const prefix = base.moves.slice(0, base.cursor);
-      return {
-        rootFen: base.rootFen,
-        moves: [...prefix, ...played],
-        cursor: prefix.length + 1,
-      };
-    });
+    const anchorPly = loaded.kind === "game" ? ply : null;
+    setTrail((current) => followOnTrail(current, { id: crypto.randomUUID(), rootFen: fen, anchorPly, moves }));
   }
 
   function playUci(uci: string) {
@@ -365,12 +466,14 @@ export function RevueApp() {
       return;
     }
 
-    setExplore((current) => {
-      const base = current ?? { rootFen: fen, moves: [], cursor: 0 };
-      const moves = base.moves.slice(0, base.cursor);
-      moves.push({ san: move.san, uci, fen: move.after });
-      return { rootFen: base.rootFen, moves, cursor: moves.length };
-    });
+    if (!move) {
+      return;
+    }
+
+    const anchorPly = loaded.kind === "game" ? ply : null;
+    setTrail((current) =>
+      playOnTrail(current, { id: crypto.randomUUID(), rootFen: fen, anchorPly, san: move.san, uci }),
+    );
   }
 
   async function runAnalysis() {
@@ -381,10 +484,11 @@ export function RevueApp() {
     }
 
     const controller = new AbortController();
+    const gen = sessionGen.current;
     batchAbort.current = controller;
-    exitExplore();
+    returnToGame();
     setMessage(null);
-    setBatch({ done: 0, total: game.moves.length + 1, depthNow: 0 });
+    setBatch({ done: 0, total: game.moves.length + 1, depthNow: 0, startedAt: performance.now() });
 
     try {
       const result = await analyzeGame({
@@ -398,6 +502,10 @@ export function RevueApp() {
             multipv: 1,
             signal: controller.signal,
             onProgress: (partial) => {
+              if (sessionGen.current !== gen) {
+                return;
+              }
+
               setBatch((current) => (current ? { ...current, depthNow: partial.depth } : current));
             },
           });
@@ -411,6 +519,10 @@ export function RevueApp() {
           };
         },
         onProgress: (update) => {
+          if (sessionGen.current !== gen) {
+            return;
+          }
+
           setAnalyses(update.analyses);
           setNodeEvals(update.nodeEvals);
           setBatch((current) =>
@@ -418,20 +530,51 @@ export function RevueApp() {
           );
         },
       });
+
+      if (sessionGen.current !== gen) {
+        return;
+      }
+
       setAnalyses(result.analyses);
       setNodeEvals(result.nodeEvals);
       setMessage("Analyse terminée.");
     } catch (error) {
+      if (sessionGen.current !== gen) {
+        return;
+      }
+
       if (isAbort(error)) {
         setMessage("Analyse arrêtée. Les coups déjà calculés restent affichés.");
       } else {
         setMessage(error instanceof Error ? error.message : "L'analyse a échoué.");
       }
     } finally {
-      if (batchAbort.current === controller) {
+      if (sessionGen.current === gen && batchAbort.current === controller) {
         batchAbort.current = null;
         setBatch(null);
       }
+    }
+  }
+
+  function startFresh() {
+    resumeGen.current += 1;
+    beginLoad();
+    setLoaded({ kind: "idle" });
+    setPly(0);
+    setTrail(emptyTrail());
+    setLive(null);
+    setAnalyses([]);
+    setNodeEvals([]);
+    setSavedId(null);
+    setPgnChoices([]);
+    setBatch(null);
+    setMessage(null);
+    setImportOpen(true);
+
+    try {
+      clearResume(window.localStorage);
+    } catch {
+      setMessage("Impossible d'effacer la partie en cours.");
     }
   }
 
@@ -488,12 +631,13 @@ export function RevueApp() {
       result: game?.result ?? "*",
       date: game?.date ?? "",
       pgn: loaded.kind === "game" ? loaded.pgn : null,
-      fen: loaded.kind === "position" ? loaded.fen : explore?.rootFen ?? null,
+      fen: loaded.kind === "position" ? loaded.fen : activeVariation(trail)?.rootFen ?? null,
       depth,
       ply,
       viewer: loaded.kind === "game" ? loaded.viewer : null,
       analyses,
       nodeEvals,
+      trail,
     };
 
     try {
@@ -523,10 +667,12 @@ export function RevueApp() {
             : Array.from({ length: parsed.moves.length + 1 }, () => null),
         );
         setSavedId(review.id);
+        setTrail(review.trail ?? emptyTrail());
       } else if (review.fen) {
         openPosition(review.fen);
         setDepth(review.depth || 16);
         setSavedId(review.id);
+        setTrail(review.trail ?? emptyTrail());
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Cette sauvegarde est illisible.");
@@ -558,37 +704,53 @@ export function RevueApp() {
       viewer,
     });
   }, [game, analyses, viewer]);
-  const currentAnalysis = game && !explore && ply > 0 ? analyses[ply - 1] : null;
-  const currentNote = session && !explore && ply > 0 ? session.notes[ply - 1] : null;
+  const browsing = isBrowsing(trail);
+  const currentAnalysis = game && !browsing && ply > 0 ? analyses[ply - 1] : null;
+  const currentNote = session && !browsing && ply > 0 ? session.notes[ply - 1] : null;
   const currentLive = live?.fen === displayedFen ? live.search : null;
-  const storedEval = game && !explore ? nodeEvals[ply] ?? null : null;
+  const storedEval = game && !browsing ? nodeEvals[ply] ?? null : null;
   const barEval = liveEval(displayedFen, currentLive) ?? storedEval;
   const hintUci =
     currentLive?.lines[0]?.pvUci[0] ??
-    (!explore && game ? analyses[ply]?.bestUci ?? null : null);
-  const positionComment = explore
+    (!browsing && game ? analyses[ply]?.bestUci ?? null : null);
+  const positionComment = browsing
     ? ""
     : game
       ? ply === 0
         ? game.startComment
         : game.moves[ply - 1]?.comment ?? ""
       : "";
-  const lastMove = lastSquares(loaded, ply, explore);
+  const lastMove = lastSquares(loaded, ply, trail);
+  const branchFen = viewFen(loaded, ply, null);
+  const savedLines = browsing || loaded.kind === "idle" ? [] : variationsAt(trail, game ? ply : null, branchFen);
   const progress = batch ? Math.round((batch.done / batch.total) * 100) : 0;
+  const eta = batch
+    ? formatEta(
+        remainingMillis({
+          done: batch.done,
+          total: batch.total,
+          elapsedMs: Math.max(0, performance.now() - batch.startedAt),
+        }),
+      )
+    : null;
 
   return (
-    <main className="min-h-screen px-3 py-4 sm:px-6" style={{ background: "var(--bg-primary)" }}>
-      <div className="mx-auto flex max-w-6xl flex-col gap-4">
+    <main
+      className={`min-h-screen px-3 sm:px-6 ${loaded.kind === "idle" ? "py-4" : "py-2 sm:py-4"}`}
+      style={{ background: "var(--bg-primary)" }}
+    >
+      <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:gap-4">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <Link href="/" className="text-sm" style={{ color: "var(--text-muted)" }}>
               ← Pablo
             </Link>
             <h1
-              className="text-3xl"
+              className={loaded.kind === "idle" ? "text-3xl" : "text-2xl sm:text-3xl"}
               style={{ fontFamily: "var(--font-playfair), serif", color: "var(--gold-light)" }}
             >
-              Revue
+              <span className={game ? "lg:inline max-lg:hidden" : undefined}>Revue</span>
+              {game ? <span className="lg:hidden">{game.white} – {game.black}</span> : null}
             </h1>
           </div>
           <p className="text-sm" style={{ color: engineReady ? "var(--text-secondary)" : "var(--gold)" }}>
@@ -597,9 +759,31 @@ export function RevueApp() {
         </header>
 
         <section
-          className="rounded-2xl p-3 sm:p-4"
+          data-import-open={loaded.kind !== "idle" && !importOpen ? "false" : "true"}
+          className={`rounded-2xl sm:p-4 ${loaded.kind !== "idle" && !importOpen ? "p-2" : "p-3"}`}
           style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
         >
+          {loaded.kind !== "idle" ? (
+            <div className={`revue-import-bar flex gap-2 lg:hidden ${importOpen ? "mb-3" : ""}`}>
+              <button
+                type="button"
+                className="min-h-11 flex-1 rounded-lg px-3 text-left text-sm font-semibold"
+                style={{ border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                aria-expanded={importOpen}
+                onClick={() => setImportOpen((open) => !open)}
+              >
+                {importOpen ? "Masquer l'import" : "Importer une partie"}
+              </button>
+              <button
+                type="button"
+                className="min-h-11 shrink-0 rounded-lg px-3 text-sm"
+                style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
+                onClick={startFresh}
+              >
+                Nouvelle partie
+              </button>
+            </div>
+          ) : null}
           <div className="mb-3 flex flex-wrap gap-2">
             {(
               [
@@ -841,9 +1025,13 @@ export function RevueApp() {
           </p>
         ) : null}
 
-        <section ref={boardAnchor} className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
-          <div className="flex min-w-0 flex-col gap-3">
-            <div className="flex min-w-0 gap-2">
+        <section
+          ref={boardAnchor}
+          data-revue-live={loaded.kind === "idle" ? "false" : "true"}
+          className="grid gap-4 lg:items-start lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]"
+        >
+          <div className="revue-board-col flex min-w-0 flex-col gap-3">
+            <div className="revue-board flex w-full min-w-0 gap-2" {...swipe}>
               <EvalBar evaluation={barEval} orientation={orientation} />
               <div className="min-w-0 flex-1">
                 <ChessBoard
@@ -856,43 +1044,36 @@ export function RevueApp() {
                 />
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <NavButton label="Début" onClick={() => { exitExplore(); setPly(0); }} />
-              <NavButton label="Précédent" onClick={() => (explore ? setExplore((current) => shiftExplore(current, -1)) : setPly((current) => Math.max(0, current - 1)))} />
-              <NavButton
-                label="Suivant"
-                onClick={() =>
-                  explore
-                    ? setExplore((current) => shiftExplore(current, 1))
-                    : setPly((current) => (game ? Math.min(game.moves.length, current + 1) : current))
-                }
-              />
-              <NavButton label="Fin" onClick={() => { exitExplore(); if (game) setPly(game.moves.length); }} />
+            <div className="revue-nav flex w-full min-w-0 flex-wrap gap-2">
+              <NavButton label="Début" onClick={() => edgeRef.current("start")} />
+              <NavButton label="Précédent" onClick={() => moveByRef.current(-1)} />
+              <NavButton label="Suivant" onClick={() => moveByRef.current(1)} />
+              <NavButton label="Fin" onClick={() => edgeRef.current("end")} />
               <NavButton label="Retourner" onClick={() => setOrientation((side) => (side === "w" ? "b" : "w"))} />
-              {game ? (
-                <NavButton
-                  label={explore ? "Retour à la partie" : "Explorer la position"}
-                  onClick={() => {
-                    if (explore) {
-                      exitExplore();
-                      return;
-                    }
-                    setExplore({ rootFen: displayedFen, moves: [], cursor: 0 });
-                  }}
-                />
-              ) : null}
             </div>
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-              Flèches pour avancer, F pour retourner. La flèche dorée est le coup conseillé. Clique une ligne pour la suivre.
+            <VariationStrip
+              trail={trail}
+              savedLines={savedLines}
+              returnLabel={browsing ? (game ? "Retour à la partie" : "Position de départ") : null}
+              onJump={(cursor) => setTrail((current) => jumpTrail(current, cursor))}
+              onOpen={(id) => setTrail((current) => openVariation(current, id))}
+              onReturn={returnToGame}
+            />
+            <p className="revue-hint text-xs" style={{ color: "var(--text-muted)" }}>
+              Balayez l&apos;échiquier pour avancer ou reculer. Flèches, F pour retourner. La flèche dorée est le coup conseillé.
             </p>
-            {game && !explore ? <EvalChart evals={nodeEvals} ply={ply} onPick={(next) => { exitExplore(); setPly(next); }} /> : null}
+            {game && !browsing ? (
+              <div className="revue-chart">
+                <EvalChart evals={nodeEvals} ply={ply} onPick={(next) => { returnToGame(); setPly(next); }} />
+              </div>
+            ) : null}
           </div>
 
           <div
-            className="flex flex-col gap-4 rounded-2xl p-4"
+            className="revue-side-col flex flex-col gap-4 rounded-2xl p-4"
             style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
           >
-            <div>
+            <div className="revue-title">
               <h2 className="text-lg" style={{ fontFamily: "var(--font-playfair), serif" }}>
                 {game ? `${game.white} – ${game.black}` : loaded.kind === "position" ? "Position" : "Aucune partie"}
               </h2>
@@ -903,7 +1084,7 @@ export function RevueApp() {
               ) : null}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="revue-controls flex flex-wrap items-center gap-2">
               <label className="text-sm" style={{ color: "var(--text-secondary)" }} htmlFor="depth-select">
                 Profondeur
               </label>
@@ -944,16 +1125,27 @@ export function RevueApp() {
                   Enregistrer
                 </button>
               ) : null}
+              {loaded.kind !== "idle" ? (
+                <button
+                  type="button"
+                  className="min-h-11 shrink-0 rounded-lg px-3 text-sm"
+                  style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
+                  onClick={startFresh}
+                >
+                  Nouvelle partie
+                </button>
+              ) : null}
             </div>
 
             {batch ? (
-              <div>
-                <div className="mb-1 flex justify-between text-xs" style={{ color: "var(--text-secondary)" }}>
+              <div className="revue-progress">
+                <div className="mb-1 flex flex-wrap justify-between gap-x-3 text-xs" style={{ color: "var(--text-secondary)" }}>
                   <span>
                     Coup {Math.min(batch.done, game?.moves.length ?? batch.done)} / {game?.moves.length ?? 0}
                   </span>
                   <span>
                     profondeur {batch.depthNow || "…"}/{depth}
+                    {eta ? ` · ${eta}` : batch.done === 0 ? " · durée après le 1er coup" : ""}
                   </span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full" style={{ background: "var(--border)" }} aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} role="progressbar">
@@ -963,7 +1155,7 @@ export function RevueApp() {
             ) : null}
 
             {game && doneMoves.length > 0 ? (
-              <div className="space-y-1 text-sm">
+              <div className="revue-summaries space-y-1 text-sm">
                 <p>{summaryText(whiteSummary)}</p>
                 <p>{summaryText(blackSummary)}</p>
                 {doneMoves.length < game.moves.length ? (
@@ -974,28 +1166,21 @@ export function RevueApp() {
               </div>
             ) : null}
 
-            {session && !explore ? (
-              <CoachPanel
-                session={session}
-                phase={session.phases[ply] ?? "ouverture"}
-                onPick={(next) => {
-                  exitExplore();
-                  setPly(next);
-                }}
-              />
-            ) : null}
-
-            {explore ? (
-              <p className="text-sm" style={{ color: "var(--gold)" }}>
-                Mode position
-                {explore.moves.length > 0
-                  ? ` · ${explore.moves.slice(0, explore.cursor).map((move) => move.san).join(" ")}`
-                  : ""}
-              </p>
+            {session && !browsing ? (
+              <div className="revue-coach">
+                <CoachPanel
+                  session={session}
+                  phase={session.phases[ply] ?? "ouverture"}
+                  onPick={(next) => {
+                    returnToGame();
+                    setPly(next);
+                  }}
+                />
+              </div>
             ) : null}
 
             {currentAnalysis ? (
-              <div className="rounded-xl p-3 text-sm" style={{ background: "var(--bg-secondary)" }}>
+              <div className="revue-note rounded-xl p-3 text-sm" style={{ background: "var(--bg-secondary)" }}>
                 <p className="font-semibold" style={{ color: classColor(currentAnalysis.classification) }}>
                   {classLabel(currentAnalysis.classification)}
                   {mateSwingLabel(currentAnalysis)
@@ -1020,13 +1205,13 @@ export function RevueApp() {
             ) : null}
 
             {positionComment ? (
-              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              <p className="revue-comment text-sm" style={{ color: "var(--text-secondary)" }}>
                 {positionComment}
               </p>
             ) : null}
 
             {liveEnabled ? (
-              <div className="space-y-2">
+              <div className="revue-lines space-y-2">
                 <h3 className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
                   Lignes {currentLive ? `(profondeur ${currentLive.depth}/${depth})` : ""}
                 </h3>
@@ -1058,16 +1243,18 @@ export function RevueApp() {
             ) : null}
 
             {game ? (
-              <MoveList
-                moves={game.moves}
-                analyses={analyses}
-                ply={ply}
-                exploring={Boolean(explore)}
-                onPick={(next) => {
-                  exitExplore();
-                  setPly(next);
-                }}
-              />
+              <div className="revue-moves">
+                <MoveList
+                  moves={game.moves}
+                  analyses={analyses}
+                  ply={ply}
+                  exploring={browsing}
+                  onPick={(next) => {
+                    returnToGame();
+                    setPly(next);
+                  }}
+                />
+              </div>
             ) : loaded.kind === "idle" ? (
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                 Importe un PGN, un pseudo Chess.com, ou une FEN. Rien n&apos;est envoyé à un compte : l&apos;analyse reste dans le navigateur.
@@ -1114,36 +1301,26 @@ function viewFen(loaded: Loaded, ply: number, explore: Explore | null) {
   return START_FEN;
 }
 
-function lastSquares(loaded: Loaded, ply: number, explore: Explore | null) {
-  if (explore && explore.cursor > 0) {
-    const uci = explore.moves[explore.cursor - 1]?.uci ?? "";
-    return { from: uci.slice(0, 2) as Square, to: uci.slice(2, 4) as Square };
+function lastSquares(loaded: Loaded, ply: number, trail: VariationTrail) {
+  const line = activeVariation(trail);
+
+  if (line && trail.cursor > 0) {
+    return squares(line.moves[trail.cursor - 1]?.uci ?? "");
   }
 
-  if (!explore && loaded.kind === "game" && ply > 0) {
-    const uci = loaded.game.moves[ply - 1]?.uci ?? "";
-    return { from: uci.slice(0, 2) as Square, to: uci.slice(2, 4) as Square };
+  if (!line && loaded.kind === "game" && ply > 0) {
+    return squares(loaded.game.moves[ply - 1]?.uci ?? "");
   }
 
   return null;
 }
 
-function shiftExplore(current: Explore | null, direction: number) {
-  if (!current) {
-    return current;
-  }
-
-  const next = current.cursor + direction;
-
-  if (next < 0) {
+function squares(uci: string) {
+  if (uci.length < 4) {
     return null;
   }
 
-  if (next > current.moves.length) {
-    return current;
-  }
-
-  return { ...current, cursor: next };
+  return { from: uci.slice(0, 2) as Square, to: uci.slice(2, 4) as Square };
 }
 
 function liveEval(fen: string, live: EngineSearch | null): NodeEval | null {
@@ -1217,7 +1394,7 @@ function NavButton({ label, onClick }: { label: string; onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="min-h-11 rounded-lg px-3 text-sm"
+      className="min-h-11 shrink-0 rounded-lg px-3 text-sm"
       style={{ border: "1px solid var(--border)", color: "var(--text-primary)", background: "var(--bg-card)" }}
     >
       {label}

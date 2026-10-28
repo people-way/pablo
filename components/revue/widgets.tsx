@@ -136,13 +136,28 @@ export function MoveList({
   }
 
   const activeRef = useRef<HTMLButtonElement | null>(null);
+  const listRef = useRef<HTMLOListElement | null>(null);
 
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: "nearest" });
+    const node = activeRef.current;
+    const list = listRef.current;
+
+    if (!node || !list) {
+      return;
+    }
+
+    const nodeRect = node.getBoundingClientRect();
+    const listRect = list.getBoundingClientRect();
+
+    if (nodeRect.top < listRect.top) {
+      list.scrollTop -= listRect.top - nodeRect.top;
+    } else if (nodeRect.bottom > listRect.bottom) {
+      list.scrollTop += nodeRect.bottom - listRect.bottom;
+    }
   }, [ply, exploring]);
 
   return (
-    <ol className="max-h-72 space-y-1 overflow-y-auto pr-1 text-sm">
+    <ol ref={listRef} className="max-h-72 space-y-1 overflow-y-auto pr-1 text-sm">
       {rows.map((row) => (
         <li key={row.number} className="grid grid-cols-[2rem_1fr_1fr] items-center gap-1">
           <span style={{ color: "var(--text-muted)" }}>{row.number}.</span>
