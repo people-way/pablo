@@ -50,7 +50,7 @@ export function parsePgn(raw: string): ParsedGame {
     result: headerOr(headers.Result, "*"),
     date: headers.Date ?? "",
     event: headers.Event ?? "",
-    opening: headers.Opening ?? headers.ECO ?? "",
+    opening: openingLabel(headers),
     startFen,
     startComment: comments.get(startFen) ?? "",
     hasVariations: movetextHasVariations(pgn),
@@ -381,6 +381,50 @@ function frenchFenError(error: string) {
   }
 
   return "Cette FEN est invalide.";
+}
+
+/**
+ * Chess.com games ship an ECO code and an ECOUrl, not an Opening header.
+ * Prefer a human title from the URL, then the raw code, so the coach can name the line.
+ */
+function openingLabel(headers: Record<string, string | undefined>) {
+  const named = headers.Opening?.trim();
+
+  if (named) {
+    return named;
+  }
+
+  const fromUrl = titleFromEcoUrl(headers.ECOUrl);
+
+  if (fromUrl) {
+    return fromUrl;
+  }
+
+  return headers.ECO?.trim() ?? "";
+}
+
+function titleFromEcoUrl(url: string | undefined) {
+  if (!url) {
+    return "";
+  }
+
+  const tail = url.split("/").filter(Boolean).pop() ?? "";
+  let slug = tail;
+
+  try {
+    slug = decodeURIComponent(tail);
+  } catch {
+    slug = tail;
+  }
+
+  // The public URL ends with the move that fixed the code, e.g. "-8.d5-Nb8".
+  slug = slug.replace(/-\d+\.[A-Za-z0-9].*$/, "");
+
+  return slug
+    .split("-")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" ");
 }
 
 function headerOr(value: string | undefined, fallback: string) {

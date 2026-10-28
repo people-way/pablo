@@ -135,6 +135,16 @@ describe("PGN and FEN", () => {
     assert.equal(game.startFen, game.moves[0].fenBefore);
   });
 
+  it("names a Chess.com game from the ECO url, without the trailing move", () => {
+    const game = parsePgn(`[ECO "E62"]
+[ECOUrl "https://www.chess.com/openings/Kings-Indian-Defense-Fianchetto-Karlsbad-Panno-Uhlmann-Szabo-System-8.d5-Nb8"]
+
+1. d4 Nf6 2. Nf3 g6 3. g3 *`);
+
+    assert.match(game.opening, /Kings Indian Defense/);
+    assert.doesNotMatch(game.opening, /Nb8|8\.d5/);
+  });
+
   it("rejects an empty or broken PGN", () => {
     assert.throws(() => parsePgn("   "), /PGN/);
     assert.throws(() => parsePgn("1. e4 e5 2. Qh5 Ke7 3. not-a-move"), /PGN/);
