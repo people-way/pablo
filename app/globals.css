@@ -183,12 +183,12 @@ body {
 
   [data-revue-live="true"] .revue-board { order: 1; touch-action: pan-y; }
   [data-revue-live="true"] .revue-nav { order: 2; flex-wrap: nowrap; overflow-x: auto; }
-  [data-revue-live="true"] .revue-controls { order: 3; flex-wrap: nowrap; overflow-x: auto; }
-  [data-revue-live="true"] .revue-progress { order: 4; }
-  [data-revue-live="true"] .revue-coach { order: 5; }
-  [data-revue-live="true"] .revue-title { order: 6; }
-  [data-revue-live="true"] .revue-hint { order: 7; }
-  [data-revue-live="true"] .revue-explore { order: 8; }
+  [data-revue-live="true"] .revue-explore { order: 3; }
+  [data-revue-live="true"] .revue-controls { order: 4; flex-wrap: nowrap; overflow-x: auto; }
+  [data-revue-live="true"] .revue-progress { order: 5; }
+  [data-revue-live="true"] .revue-coach { order: 6; }
+  [data-revue-live="true"] .revue-title { order: 7; }
+  [data-revue-live="true"] .revue-hint { order: 8; }
   [data-revue-live="true"] .revue-note { order: 9; }
   [data-revue-live="true"] .revue-comment { order: 10; }
   [data-revue-live="true"] .revue-summaries { order: 11; }

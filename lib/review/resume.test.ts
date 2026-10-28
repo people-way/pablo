@@ -87,4 +87,34 @@ describe("current game resume", () => {
     storage.setItem("pablo.revue.current.v1", JSON.stringify({ ...snapshot, pgn: null, fen: null }));
     assert.equal(readResume(storage), null);
   });
+
+  it("keeps explored variations and ignores a trail that cannot be played", () => {
+    const storage = memoryStorage();
+    const trail = {
+      variations: [
+        {
+          id: "ligne",
+          rootFen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          anchorPly: 2,
+          cursor: 1,
+          moves: [
+            { san: "e4", uci: "e2e4" },
+            { san: "e5", uci: "e7e5" },
+          ],
+        },
+      ],
+      activeId: "ligne",
+      cursor: 1,
+    };
+    writeResume(storage, { ...snapshot, trail });
+    assert.equal(readResume(storage)?.trail?.variations[0]?.moves.length, 2);
+    assert.equal(readResume(storage)?.trail?.cursor, 1);
+    storage.setItem(
+      "pablo.revue.current.v1",
+      JSON.stringify({ ...snapshot, trail: { variations: [{ id: "nope" }], activeId: null, cursor: 0 } }),
+    );
+    const resumed = readResume(storage);
+    assert.equal(resumed?.pgn, snapshot.pgn);
+    assert.equal(resumed?.trail, undefined);
+  });
 });
