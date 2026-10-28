@@ -107,6 +107,9 @@ function StepInput({
           <span>←</span>
           <span>Back</span>
         </Link>
+        <Link href="/ouvertures" className="mb-6 block text-sm" style={{ color: "var(--gold)" }}>
+          Coach d&apos;ouvertures — le répertoire réel
+        </Link>
 
         {/* Avatar glyph */}
         <div

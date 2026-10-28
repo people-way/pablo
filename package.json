@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test lib/openings/lookup.test.ts lib/account-guards.test.ts && node --import ./scripts/register-review-tests.mjs --test lib/review/*.test.ts"
+    "test": "tsx --test lib/openings/lookup.test.ts lib/openings/repertoire.test.ts lib/account-guards.test.ts && node --import ./scripts/register-review-tests.mjs --test lib/review/*.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
