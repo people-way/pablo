@@ -387,7 +387,7 @@ function frenchFenError(error: string) {
  * Chess.com games ship an ECO code and an ECOUrl, not an Opening header.
  * Prefer a human title from the URL, then the raw code, so the coach can name the line.
  */
-function openingLabel(headers: Record<string, string | undefined>) {
+export function openingLabel(headers: Record<string, string | undefined>) {
   const named = headers.Opening?.trim();
 
   if (named) {

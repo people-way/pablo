@@ -32,6 +32,8 @@ function sampleGame(spec: SampleSpec): ImportedChessComGame {
     openingName: spec.opening,
     ecoCode: null,
     openingFamily: spec.opening,
+    accuracy: null,
+    playerRating: null,
   };
 }
 
