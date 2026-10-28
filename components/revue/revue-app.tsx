@@ -320,7 +320,7 @@ export function RevueApp() {
       } else if (event.key === "ArrowRight") {
         event.preventDefault();
         moveByRef.current(1);
-      } else       if (event.key === "Home") {
+      } else if (event.key === "Home") {
         event.preventDefault();
         edgeRef.current("start");
       } else if (event.key === "End") {
@@ -1079,7 +1079,7 @@ export function RevueApp() {
               </h2>
               {game ? (
                 <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                  {[game.result, game.date, game.opening].filter(Boolean).join(" · ")}
+                  {[game.result, game.date, openingTitle(session, game.opening)].filter(Boolean).join(" · ")}
                 </p>
               ) : null}
             </div>
@@ -1265,6 +1265,16 @@ export function RevueApp() {
       </div>
     </main>
   );
+}
+
+function openingTitle(session: { opening: { name: string; variation: string | null } } | null, fallback: string) {
+  const name = session?.opening.name;
+
+  if (!name || name === "Ouverture non identifiée") {
+    return fallback;
+  }
+
+  return session.opening.variation ? `${name} · ${session.opening.variation}` : name;
 }
 
 function viewFen(loaded: Loaded, ply: number, explore: Explore | null) {
