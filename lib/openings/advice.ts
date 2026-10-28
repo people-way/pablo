@@ -187,24 +187,30 @@ const PLANS: Record<string, Plan> = {
 const GENERIC =
   "À ce niveau, une ligne répétée sans coup de remplacement te coûte plus cher qu'une ligne inférieure que tu comprends. Tu choisis un coup, tu apprends la réponse adverse, et tu la tiens dix parties avant d'en changer.";
 
-export function planFor(openingId: string | null, color: ColorName, sans: string[] = []) {
-  const plan = openingId ? PLANS[openingId] : undefined;
-  const specific = plan?.[color] ?? plan?.white ?? plan?.black;
-  if (specific) {
-    return specific;
+function planText(openingId: string, color: ColorName) {
+  const plan = PLANS[openingId];
+  return plan?.[color] ?? plan?.white ?? plan?.black ?? null;
+}
+
+export function planFor(openingId: string | null, color: ColorName, sans: string[] = []): string {
+  if (openingId) {
+    const specific = planText(openingId, color);
+    if (specific) {
+      return specific;
+    }
   }
   return planFromSans(sans, color) ?? GENERIC;
 }
 
-function planFromSans(sans: string[], color: ColorName) {
+function planFromSans(sans: string[], color: ColorName): string | null {
   if (sans[0] === "e4" && sans[1] === "c6") {
-    return planFor("caro_kann", color);
+    return planText("caro_kann", color);
   }
   if (sans[0] === "e4" && sans[1] === "e6") {
-    return planFor("french_defense", color);
+    return planText("french_defense", color);
   }
   if (sans[0] === "e4" && sans[1] === "d5") {
-    return planFor("scandinavian_defense", color);
+    return planText("scandinavian_defense", color);
   }
   if (sans[0] === "e4" && sans[1] === "c5") {
     return color === "white"
