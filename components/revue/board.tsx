@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Chess, type Square } from "chess.js";
+import { withBasePath } from "@/lib/paths";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
 
@@ -145,7 +146,7 @@ export function ChessBoard({
                     aria-hidden="true"
                     className="pointer-events-none absolute inset-[7%] select-none bg-contain bg-center bg-no-repeat"
                     style={{
-                      backgroundImage: `url(/pieces/cburnett/${piece.color}${piece.type.toUpperCase()}.svg)`,
+                      backgroundImage: `url(${withBasePath(`/pieces/cburnett/${piece.color}${piece.type.toUpperCase()}.svg`)})`,
                     }}
                   />
                 ) : null}
@@ -225,7 +226,7 @@ export function ChessBoard({
               <span
                 aria-hidden="true"
                 className="mx-auto block h-10 w-10 bg-contain bg-center bg-no-repeat"
-                style={{ backgroundImage: `url(/pieces/cburnett/${chess.turn()}${piece.toUpperCase()}.svg)` }}
+                style={{ backgroundImage: `url(${withBasePath(`/pieces/cburnett/${chess.turn()}${piece.toUpperCase()}.svg`)})` }}
               />
             </button>
           ))}

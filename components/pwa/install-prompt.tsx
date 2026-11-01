@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BASE_PATH, withBasePath } from "@/lib/paths";
 
 const DISMISS_KEY = "pablo.pwa.install-dismissed";
 
@@ -46,8 +47,26 @@ export function PwaInstallPrompt() {
   const [iosHint, setIosHint] = useState(false);
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
+    if (!("serviceWorker" in navigator)) return;
+
+    const scriptUrl = withBasePath("/app-sw.js");
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        const script =
+          registration.active?.scriptURL ||
+          registration.waiting?.scriptURL ||
+          registration.installing?.scriptURL ||
+          "";
+        if (script && !script.endsWith(scriptUrl)) {
+          void registration.unregister();
+        }
+      }
+    }).catch(() => {
+      // An old registration must not block the page.
+    });
+
+    if (process.env.NODE_ENV === "production") {
+      navigator.serviceWorker.register(scriptUrl, { scope: `${BASE_PATH}/` }).catch(() => {
         // The site keeps working as a normal tab when registration fails.
       });
     }

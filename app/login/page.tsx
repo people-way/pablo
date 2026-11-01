@@ -8,6 +8,7 @@ import { AccountNav } from "@/components/account-nav";
 import { AccountsSoon } from "@/components/accounts-soon";
 import { ACCOUNTS_UNAVAILABLE_CODE } from "@/lib/accounts-copy";
 import { requestMagicLink } from "@/lib/magic-link-client";
+import { withBasePath } from "@/lib/paths";
 
 function queryErrorMessage(error: string | null) {
   if (error === "invalid_token") {
@@ -38,7 +39,7 @@ function LoginForm() {
   useEffect(() => {
     if (error === "accounts") return;
     let cancelled = false;
-    fetch("/api/auth/session")
+    fetch(withBasePath("/api/auth/session"))
       .then((response) => response.json())
       .then((data: { accountsAvailable?: boolean }) => {
         if (!cancelled) setAccountsAvailable(data.accountsAvailable !== false);

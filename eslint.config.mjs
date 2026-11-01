@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Vendored Stockfish worker. It is executed as-is in the browser.
     "public/engine/**",
+    "hub/**",
   ]),
 ]);
 

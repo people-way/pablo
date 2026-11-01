@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { withBasePath } from "@/lib/paths";
 
 type SessionUser = {
   email: string;
@@ -14,7 +15,7 @@ function useSessionUser() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/auth/session")
+    fetch(withBasePath("/api/auth/session"))
       .then((response) => response.json())
       .then((data: { user?: SessionUser }) => {
         if (!cancelled) setUser(data.user ?? null);

@@ -1,5 +1,7 @@
 /** Shared account helpers. No Next.js or Supabase imports — safe in node:test. */
 
+import { stripBasePath } from "./paths";
+
 export const AUTH_NEXT_COOKIE = "pablo_auth_next";
 
 /** Only same-origin relative paths. Blocks open redirects. */
@@ -12,6 +14,7 @@ export function safeRedirectPath(value: unknown, fallback = "/dashboard"): strin
   } catch {
     return fallback;
   }
+  trimmed = stripBasePath(trimmed);
   if (!trimmed.startsWith("/")) return fallback;
   if (trimmed.startsWith("//") || trimmed.startsWith("/\\")) return fallback;
   if (trimmed.includes("://") || trimmed.includes("\\")) return fallback;

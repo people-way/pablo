@@ -11,6 +11,7 @@ import { parseFen, parsePgn, parsePgnCollection, ReviewInputError, sanLine } fro
 import { SAMPLE_PGN } from "@/lib/review/sample";
 import { formatCentipawnLoss, formatEval, sideToMove, toWhiteView } from "@/lib/review/scores";
 import { formatEta, remainingMillis } from "@/lib/review/eta";
+import { withBasePath } from "@/lib/paths";
 import { clearResume, readResume, writeResume } from "@/lib/review/resume";
 import { readSaved, removeSaved, upsertSaved } from "@/lib/review/storage";
 import {
@@ -595,7 +596,7 @@ export function RevueApp() {
     setMessage(null);
 
     try {
-      const response = await fetch(`/api/revue/chess-com?username=${encodeURIComponent(name)}`);
+      const response = await fetch(withBasePath(`/api/revue/chess-com?username=${encodeURIComponent(name)}`));
       const payload = (await response.json()) as { games?: PublicGame[]; error?: string };
 
       if (!response.ok || !payload.games) {

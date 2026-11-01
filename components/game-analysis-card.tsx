@@ -6,6 +6,7 @@ import type {
   AnalysisPerspective,
   GameAnalysisReport,
 } from "@/lib/chess-analysis";
+import { withBasePath } from "@/lib/paths";
 
 type GameAnalysisCardProps = {
   pgn: string;
@@ -33,7 +34,7 @@ export function GameAnalysisCard({
   async function runAnalysis() {
     setErrorMessage("");
 
-    const response = await fetch("/api/analyze", {
+    const response = await fetch(withBasePath("/api/analyze"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
