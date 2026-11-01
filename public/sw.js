@@ -1,27 +1,54 @@
 /**
- * Pablo's app shell. CACHE_VERSION is the deploy fence: activate deletes every
- * other cache so a new worker cannot keep serving a previous shell.
+ * Pablo's app shell. The worker is registered at /pablo/sw.js, so every
+ * cached URL is derived from that script location. CACHE_VERSION is the
+ * deploy fence: activate deletes every other cache so a new worker cannot
+ * keep serving a previous shell.
  */
-const CACHE_VERSION = "pablo-shell-v1";
+const CACHE_VERSION = "pablo-shell-v2";
+
+function appBase() {
+  try {
+    const pathname = new URL(self.location.href).pathname;
+    return pathname.replace(/\/[^/]*$/, "");
+  } catch {
+    return "";
+  }
+}
+
+function withBase(path) {
+  const base = appBase();
+  if (!path.startsWith("/")) path = `/${path}`;
+  if (!base) return path;
+  if (path === "/") return base;
+  return `${base}${path}`;
+}
+
+function toAppPath(pathname) {
+  const base = appBase();
+  if (!base) return pathname;
+  if (pathname === base) return "/";
+  if (pathname.startsWith(`${base}/`)) return pathname.slice(base.length) || "/";
+  return pathname;
+}
 
 const ENGINE_FILES = [
-  "/engine/stockfish-18-lite-single.js",
-  "/engine/stockfish-18-lite-single.wasm",
+  withBase("/engine/stockfish-18-lite-single.js"),
+  withBase("/engine/stockfish-18-lite-single.wasm"),
 ];
 
 const PIECE_FILES = ["w", "b"].flatMap((color) =>
-  ["K", "Q", "R", "B", "N", "P"].map((piece) => `/pieces/cburnett/${color}${piece}.svg`),
+  ["K", "Q", "R", "B", "N", "P"].map((piece) => withBase(`/pieces/cburnett/${color}${piece}.svg`)),
 );
 
-const SHELL_DOCUMENTS = ["/", "/revue"];
+const SHELL_DOCUMENTS = [withBase("/"), withBase("/revue")];
 
 const SHELL_FILES = [
-  "/manifest.webmanifest",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/icons/icon-maskable-192.png",
-  "/icons/icon-maskable-512.png",
-  "/apple-touch-icon.png",
+  withBase("/manifest.webmanifest"),
+  withBase("/icons/icon-192.png"),
+  withBase("/icons/icon-512.png"),
+  withBase("/icons/icon-maskable-192.png"),
+  withBase("/icons/icon-maskable-512.png"),
+  withBase("/apple-touch-icon.png"),
   ...PIECE_FILES,
 ];
 
@@ -38,20 +65,21 @@ function shouldBypass(url) {
   if (host === "chess.com" || host.endsWith(".chess.com")) return true;
   if (parsed.origin !== self.location.origin) return true;
 
-  const path = parsed.pathname;
+  const path = toAppPath(parsed.pathname);
   if (path === "/api" || path.startsWith("/api/")) return true;
   if (path === "/auth" || path.startsWith("/auth/")) return true;
   if (path === "/login" || path.startsWith("/login/")) return true;
   if (path === "/dashboard" || path.startsWith("/dashboard/")) return true;
-  if (path === "/sw.js") return true;
+  if (path === "/sw.js" || path === "/legacy-sw.js") return true;
   return false;
 }
 
 function classifyRequest(url) {
   const parsed = new URL(url, self.location.origin);
   if (shouldBypass(parsed)) return "bypass";
-  if (parsed.pathname.startsWith("/engine/")) return "engine";
-  if (parsed.pathname.startsWith("/_next/static/")) return "static";
+  const path = toAppPath(parsed.pathname);
+  if (path.startsWith("/engine/")) return "engine";
+  if (path.startsWith("/_next/static/")) return "static";
   return "shell";
 }
 
@@ -62,7 +90,8 @@ function cachesToDelete(existingNames, current = CACHE_VERSION) {
 function collectAssets(source) {
   const normalized = source.replace(/\\u002[fF]/g, "/").replace(/\\\//g, "/");
   const found = new Set();
-  const pattern = /\/_next\/static\/[^"'<>\s)\\]+/g;
+  const base = appBase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`${base}/_next/static/[^"'<>\\s)\\\\]+`, "g");
   for (const match of normalized.matchAll(pattern)) {
     found.add(match[0]);
   }
@@ -180,7 +209,7 @@ async function networkFirstDocument(request) {
   } catch {
     const cached =
       (await cache.match(url.pathname)) ||
-      (request.mode === "navigate" ? await cache.match("/revue") : undefined);
+      (request.mode === "navigate" ? await cache.match(withBase("/revue")) : undefined);
     if (cached) return cached;
     return new Response("Hors ligne", {
       status: 503,

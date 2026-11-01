@@ -14,6 +14,7 @@ import { toAnalysisSaveResult } from "@/lib/openings/save-payload";
 import { classLabel } from "@/lib/review/classify";
 import { ReviewEngine } from "@/lib/review/engine-client";
 import { sideToMove, toWhiteView } from "@/lib/review/scores";
+import { withBasePath } from "@/lib/paths";
 
 type Selection = {
   id: string;
@@ -57,7 +58,7 @@ export function CoachApp() {
     setError("");
     setProbeNote("");
     try {
-      const response = await fetch(`/api/ouvertures?username=${encodeURIComponent(name)}&months=${windowMonths}`);
+      const response = await fetch(withBasePath(`/api/ouvertures?username=${encodeURIComponent(name)}&months=${windowMonths}`));
       const body = (await response.json()) as RepertoireReport & { error?: { message?: string } };
       if (!response.ok) {
         setError(body.error?.message ?? "Chess.com n'a pas répondu.");
@@ -117,7 +118,7 @@ export function CoachApp() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/auth/session")
+    fetch(withBasePath("/api/auth/session"))
       .then((response) => response.json())
       .then((data: { user?: { email?: string; chess_com_username?: string | null } | null }) => {
         if (cancelled) {
@@ -157,7 +158,7 @@ export function CoachApp() {
       return;
     }
     let cancelled = false;
-    fetch("/api/analyses/save", {
+    fetch(withBasePath("/api/analyses/save"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

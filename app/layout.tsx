@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Playfair_Display, DM_Sans } from "next/font/google";
 import Script from "next/script";
 import { PwaInstallPrompt } from "@/components/pwa/install-prompt";
+import { metadataBaseUrl, withBasePath } from "@/lib/paths";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -22,6 +23,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: metadataBaseUrl(),
   title: "Pablo — Chess Coach That Never Sleeps",
   description:
     "Pablo analyzes your chess games and delivers brutally honest improvement advice. Stop guessing. Start winning.",
@@ -32,7 +34,8 @@ export const metadata: Metadata = {
     statusBarStyle: "black",
   },
   icons: {
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    icon: [{ url: withBasePath("/icons/icon-192.png"), sizes: "192x192", type: "image/png" }],
+    apple: [{ url: withBasePath("/apple-touch-icon.png"), sizes: "180x180", type: "image/png" }],
   },
   other: {
     "apple-mobile-web-app-capable": "yes",
@@ -41,6 +44,7 @@ export const metadata: Metadata = {
     title: "Pablo — Chess Coach That Never Sleeps",
     description:
       "Pablo analyzes your chess games and delivers brutally honest improvement advice. Stop guessing. Start winning.",
+    url: "/",
     type: "website",
   },
 };

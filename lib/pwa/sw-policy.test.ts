@@ -5,6 +5,7 @@ import vm from "node:vm";
 import manifest from "../../app/manifest";
 
 const ORIGIN = "https://pablo.test";
+const BASE = "/pablo";
 
 type SwApi = {
   CACHE_VERSION: string;
@@ -27,7 +28,11 @@ function loadWorker() {
     Request,
     Headers,
     console,
-    location: { origin: ORIGIN },
+    location: {
+      origin: ORIGIN,
+      href: `${ORIGIN}${BASE}/sw.js`,
+      pathname: `${BASE}/sw.js`,
+    },
     fetch: async () => new Response("ok", { status: 200 }),
     caches: {
       async open() {
@@ -66,7 +71,9 @@ test("manifest launches the review tool as a standalone app", () => {
   const data = manifest();
   assert.equal(data.name, "Pablo");
   assert.equal(data.short_name, "Pablo");
-  assert.equal(data.start_url, "/revue");
+  assert.equal(data.id, "/pablo/revue");
+  assert.equal(data.start_url, "/pablo/revue");
+  assert.equal(data.scope, "/pablo/");
   assert.equal(data.display, "standalone");
   assert.equal(data.background_color, "#0a0b0c");
   assert.equal(data.theme_color, "#0a0b0c");
@@ -75,18 +82,20 @@ test("manifest launches the review tool as a standalone app", () => {
   assert.ok(icons.some((icon) => icon.sizes === "512x512" && icon.purpose === "any"));
   assert.ok(icons.some((icon) => icon.purpose === "maskable" && icon.sizes === "512x512"));
   assert.ok(icons.some((icon) => icon.purpose === "maskable" && icon.sizes === "192x192"));
+  assert.ok(icons.every((icon) => typeof icon.src === "string" && icon.src.startsWith("/pablo/")));
 });
 
 test("service worker never caches api, auth, login, or dashboard", () => {
   for (const path of [
+    "/pablo/api/analyze",
+    "/pablo/api/auth/session",
+    "/pablo/api/revue/chess-com?username=hikaru",
+    "/pablo/auth/callback?code=1",
+    "/pablo/login",
+    "/pablo/login?next=/revue",
+    "/pablo/dashboard",
+    "/pablo/dashboard/settings",
     "/api/analyze",
-    "/api/auth/session",
-    "/api/revue/chess-com?username=hikaru",
-    "/auth/callback?code=1",
-    "/login",
-    "/login?next=/revue",
-    "/dashboard",
-    "/dashboard/settings",
   ]) {
     const url = `${ORIGIN}${path}`;
     assert.equal(api.shouldBypass(url), true, path);
@@ -109,34 +118,40 @@ test("service worker never caches Supabase or Chess.com", () => {
 });
 
 test("service worker caches the review shell and the engine", () => {
-  assert.equal(api.classifyRequest(`${ORIGIN}/revue`), "shell");
-  assert.equal(api.classifyRequest(`${ORIGIN}/engine/stockfish-18-lite-single.js`), "engine");
-  assert.equal(api.classifyRequest(`${ORIGIN}/engine/stockfish-18-lite-single.wasm`), "engine");
-  assert.equal(api.classifyRequest(`${ORIGIN}/_next/static/chunks/app.js`), "static");
-  assert.equal(fetchWasHandled(`${ORIGIN}/revue`), true);
-  assert.equal(fetchWasHandled(`${ORIGIN}/engine/stockfish-18-lite-single.wasm`), true);
+  assert.equal(api.classifyRequest(`${ORIGIN}/pablo/revue`), "shell");
+  assert.equal(api.classifyRequest(`${ORIGIN}/pablo/engine/stockfish-18-lite-single.js`), "engine");
+  assert.equal(api.classifyRequest(`${ORIGIN}/pablo/engine/stockfish-18-lite-single.wasm`), "engine");
+  assert.equal(api.classifyRequest(`${ORIGIN}/pablo/_next/static/chunks/app.js`), "static");
+  assert.equal(fetchWasHandled(`${ORIGIN}/pablo/revue`), true);
+  assert.equal(fetchWasHandled(`${ORIGIN}/pablo/engine/stockfish-18-lite-single.wasm`), true);
   assert.equal(fetchWasHandled("https://api.chess.com/pub/player/x"), false);
 });
 
 test("activating a worker drops every cache except the current version", () => {
-  assert.deepEqual(api.cachesToDelete(["pablo-shell-v1", "pablo-shell-v0", "other"], "pablo-shell-v1"), [
-    "pablo-shell-v0",
+  assert.deepEqual(api.cachesToDelete(["pablo-shell-v2", "pablo-shell-v1", "other"], "pablo-shell-v2"), [
+    "pablo-shell-v1",
     "other",
   ]);
-  assert.equal(api.CACHE_VERSION, "pablo-shell-v1");
+  assert.equal(api.CACHE_VERSION, "pablo-shell-v2");
 });
 
 test("shell precache discovers Next static assets", () => {
   const html = `
-    <script src="/_next/static/chunks/webpack-abc.js"></script>
-    <link rel="stylesheet" href="/_next/static/chunks/app.css" />
-    <script>self.__next_f.push("/_next/static/chunks/revue-page.js")</script>
+    <script src="/pablo/_next/static/chunks/webpack-abc.js"></script>
+    <link rel="stylesheet" href="/pablo/_next/static/chunks/app.css" />
+    <script>self.__next_f.push("/pablo/_next/static/chunks/revue-page.js")</script>
   `;
   assert.deepEqual(Array.from(api.collectAssets(html)).sort(), [
-    "/_next/static/chunks/app.css",
-    "/_next/static/chunks/revue-page.js",
-    "/_next/static/chunks/webpack-abc.js",
+    "/pablo/_next/static/chunks/app.css",
+    "/pablo/_next/static/chunks/revue-page.js",
+    "/pablo/_next/static/chunks/webpack-abc.js",
   ]);
+});
+
+test("legacy root worker unregisters the installation from before /pablo", () => {
+  const source = readFileSync(new URL("../../public/legacy-sw.js", import.meta.url), "utf8");
+  assert.match(source, /self\.registration\.unregister/);
+  assert.match(source, /caches\.keys/);
 });
 
 function fetchWasHandled(url: string) {

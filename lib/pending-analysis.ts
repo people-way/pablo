@@ -1,3 +1,4 @@
+import { withBasePath } from "@/lib/paths";
 import { isSampleUsername } from "@/lib/sample-games";
 
 const STORAGE_KEY = "pablo.pendingAnalysis";
@@ -50,7 +51,7 @@ export async function flushPendingAnalysis(): Promise<"saved" | "empty" | "skipp
   }
 
   try {
-    const response = await fetch("/api/analyses/save", {
+    const response = await fetch(withBasePath("/api/analyses/save"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
