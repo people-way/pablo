@@ -82,7 +82,7 @@ Magic links are sent by Supabase. The default template works when the link is op
 
 ## Studio hub
 
-`hub/` is a separate Next.js app, deployed as its own Vercel project with Root Directory `hub/` and the apex domain `anarchikgames.com`. It serves the studio home page and rewrites `/pablo` to this deployment and `/street-tycoons` to Street Tycoons. Upstream origins live in `hub/lib/upstreams.ts` and can be overridden at build time:
+`hub/` is a separate Next.js app, deployed as its own Vercel project with Root Directory `hub/` and the apex domain `anarchikgames.com`. It serves the studio home page and proxies `/pablo` to this deployment and `/street-tycoons` to Street Tycoons. The proxy is a route handler so Next's segment-prefetch header reaches the game. `/_vercel/insights` is rewritten to Street Tycoons, which serves Vercel Analytics. Upstream origins live in `hub/lib/upstreams.ts`. Game proxies read them on each request; the analytics rewrite is fixed at build time:
 
 | Variable | Default |
 |----------|---------|
