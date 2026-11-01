@@ -51,8 +51,8 @@ export function stripBasePath(value: string): string {
 /**
  * Old root URLs (`/`, `/revue`) on the Pablo deployment. Paths already under
  * `/pablo` are not listed: the hub rewrites those back here, and redirecting
- * them would loop. `/sw.js` is served in place so an installed worker can
- * unregister itself.
+ * them would loop. `/sw.js` is left alone so the cleanup worker can answer
+ * 200 instead of being redirected.
  */
 export function legacyRedirects(origin = canonicalOrigin()): Array<{
   source: string;

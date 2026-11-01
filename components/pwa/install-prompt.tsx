@@ -49,7 +49,7 @@ export function PwaInstallPrompt() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
-    const scriptUrl = withBasePath("/sw.js");
+    const scriptUrl = withBasePath("/app-sw.js");
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       for (const registration of registrations) {
         const script =

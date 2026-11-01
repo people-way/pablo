@@ -30,8 +30,8 @@ function loadWorker() {
     console,
     location: {
       origin: ORIGIN,
-      href: `${ORIGIN}${BASE}/sw.js`,
-      pathname: `${BASE}/sw.js`,
+      href: `${ORIGIN}${BASE}/app-sw.js`,
+      pathname: `${BASE}/app-sw.js`,
     },
     fetch: async () => new Response("ok", { status: 200 }),
     caches: {
@@ -58,8 +58,8 @@ function loadWorker() {
   };
   const sandbox = vm.createContext({ ...context, self: null as unknown });
   (sandbox as { self: unknown }).self = sandbox;
-  vm.runInContext(readFileSync(new URL("../../public/sw.js", import.meta.url), "utf8"), sandbox, {
-    filename: "sw.js",
+  vm.runInContext(readFileSync(new URL("../../public/app-sw.js", import.meta.url), "utf8"), sandbox, {
+    filename: "app-sw.js",
   });
   const api = (sandbox as { pabloSw: SwApi }).pabloSw;
   return { api, listeners };
@@ -148,10 +148,11 @@ test("shell precache discovers Next static assets", () => {
   ]);
 });
 
-test("legacy root worker unregisters the installation from before /pablo", () => {
-  const source = readFileSync(new URL("../../public/legacy-sw.js", import.meta.url), "utf8");
+test("root /sw.js unregisters the installation from before /pablo", () => {
+  const source = readFileSync(new URL("../../public/sw.js", import.meta.url), "utf8");
   assert.match(source, /self\.registration\.unregister/);
   assert.match(source, /caches\.keys/);
+  assert.doesNotMatch(source, /precacheShell/);
 });
 
 function fetchWasHandled(url: string) {
