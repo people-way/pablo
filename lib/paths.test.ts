@@ -29,11 +29,11 @@ test("stripBasePath removes one prefix and keeps the query", () => {
 test("canonical origin is the origin only", () => {
   assert.equal(canonicalOrigin({} as NodeJS.ProcessEnv), "");
   assert.equal(
-    canonicalOrigin({ PABLO_CANONICAL_ORIGIN: "https://anarchikgames.com/pablo" } as NodeJS.ProcessEnv),
+    canonicalOrigin({ ...process.env, PABLO_CANONICAL_ORIGIN: "https://anarchikgames.com/pablo" }),
     "https://anarchikgames.com",
   );
   assert.equal(
-    canonicalOrigin({ PABLO_CANONICAL_ORIGIN: "javascript:alert(1)" } as NodeJS.ProcessEnv),
+    canonicalOrigin({ ...process.env, PABLO_CANONICAL_ORIGIN: "javascript:alert(1)" }),
     "",
   );
 });
@@ -52,7 +52,8 @@ test("legacy redirects stay on this host until the canonical origin is set", () 
 
 test("metadata base includes the public prefix", () => {
   const url = metadataBaseUrl({
+    ...process.env,
     PABLO_CANONICAL_ORIGIN: "https://anarchikgames.com",
-  } as NodeJS.ProcessEnv);
+  });
   assert.equal(url.href, "https://anarchikgames.com/pablo/");
 });

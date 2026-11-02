@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess, type Square } from "chess.js";
 import { analyzeGame, ReviewCancelled } from "@/lib/review/analyze-game";
 import { classLabel, summarizePlayer, summaryText } from "@/lib/review/classify";
+import { adjacentWeakPly, centipawnGap, describeSpread, formatLineGap, isWeakMove } from "@/lib/review/lines";
 import { buildCoachingSession } from "@/lib/review/session";
 import { ReviewEngine, type EngineSearch } from "@/lib/review/engine-client";
 import { parseFen, parsePgn, parsePgnCollection, ReviewInputError, sanLine } from "@/lib/review/parse";
@@ -100,6 +101,7 @@ export function RevueApp() {
   const resumeGen = useRef(0);
   const moveByRef = useRef<(direction: number) => void>(() => {});
   const edgeRef = useRef<(edge: "start" | "end") => void>(() => {});
+  const jumpWeakRef = useRef<(direction: 1 | -1) => void>(() => {});
   const [importOpen, setImportOpen] = useState(true);
   const swipe = useMoveSwipe((direction) => {
     moveByRef.current(direction);
@@ -209,7 +211,22 @@ export function RevueApp() {
         setPly(game.moves.length);
       }
     };
-  }, [trail, game]);
+    jumpWeakRef.current = (direction) => {
+      if (!game) {
+        return;
+      }
+
+      const target = adjacentWeakPly(analyses, ply, direction);
+
+      if (target == null) {
+        return;
+      }
+
+      setTrail((current) => leaveTrail(current));
+      setLive(null);
+      setPly(target);
+    };
+  }, [trail, game, analyses, ply]);
 
   useEffect(() => {
     if (loaded.kind === "idle") {
@@ -315,7 +332,13 @@ export function RevueApp() {
         return;
       }
 
-      if (event.key === "ArrowLeft") {
+      if (event.key === "ArrowLeft" && event.shiftKey) {
+        event.preventDefault();
+        jumpWeakRef.current(-1);
+      } else if (event.key === "ArrowRight" && event.shiftKey) {
+        event.preventDefault();
+        jumpWeakRef.current(1);
+      } else if (event.key === "ArrowLeft") {
         event.preventDefault();
         moveByRef.current(-1);
       } else if (event.key === "ArrowRight") {
@@ -734,6 +757,17 @@ export function RevueApp() {
         }),
       )
     : null;
+  const chartMarks = analyses.flatMap((analysis, index) =>
+    analysis && isWeakMove(analysis.classification)
+      ? [{ ply: index + 1, classification: analysis.classification }]
+      : [],
+  );
+  const previousWeak = game ? adjacentWeakPly(analyses, ply, -1) : null;
+  const nextWeak = game ? adjacentWeakPly(analyses, ply, 1) : null;
+  const liveSide = sideToMove(displayedFen);
+  const liveLines = currentLive?.lines ?? [];
+  const spreadText =
+    liveLines.length >= 2 ? describeSpread(liveLines[0], liveLines[1], liveSide) : null;
 
   return (
     <main
@@ -1050,6 +1084,12 @@ export function RevueApp() {
               <NavButton label="Précédent" onClick={() => moveByRef.current(-1)} />
               <NavButton label="Suivant" onClick={() => moveByRef.current(1)} />
               <NavButton label="Fin" onClick={() => edgeRef.current("end")} />
+              {game ? (
+                <NavButton label="Faiblesse préc." disabled={previousWeak == null} onClick={() => jumpWeakRef.current(-1)} />
+              ) : null}
+              {game ? (
+                <NavButton label="Faiblesse suiv." disabled={nextWeak == null} onClick={() => jumpWeakRef.current(1)} />
+              ) : null}
               <NavButton label="Retourner" onClick={() => setOrientation((side) => (side === "w" ? "b" : "w"))} />
             </div>
             <VariationStrip
@@ -1061,11 +1101,19 @@ export function RevueApp() {
               onReturn={returnToGame}
             />
             <p className="revue-hint text-xs" style={{ color: "var(--text-muted)" }}>
-              Balayez l&apos;échiquier pour avancer ou reculer. Flèches, F pour retourner. La flèche dorée est le coup conseillé.
+              Balayez l&apos;échiquier pour avancer ou reculer. Flèches pour avancer, Maj+flèches pour le coup faible suivant, F pour retourner. La flèche dorée est le coup conseillé.
             </p>
             {game && !browsing ? (
               <div className="revue-chart">
-                <EvalChart evals={nodeEvals} ply={ply} onPick={(next) => { returnToGame(); setPly(next); }} />
+                <EvalChart
+                  evals={nodeEvals}
+                  ply={ply}
+                  marks={chartMarks}
+                  onPick={(next) => {
+                    returnToGame();
+                    setPly(next);
+                  }}
+                />
               </div>
             ) : null}
           </div>
@@ -1216,20 +1264,29 @@ export function RevueApp() {
                 <h3 className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
                   Lignes {currentLive ? `(profondeur ${currentLive.depth}/${depth})` : ""}
                 </h3>
-                {(currentLive?.lines ?? []).slice(0, 3).map((line) => {
-                  const white = toWhiteView(line, sideToMove(displayedFen));
+                {spreadText ? (
+                  <p className="text-sm" style={{ color: "var(--gold-light)" }}>
+                    {spreadText}
+                  </p>
+                ) : null}
+                {liveLines.slice(0, 3).map((line, index) => {
+                  const white = toWhiteView(line, liveSide);
                   const text = sanLine(displayedFen, line.pvUci);
+                  const gap = index > 0 && liveLines[0] ? centipawnGap(liveLines[0], line, liveSide) : 0;
+                  const gapText = formatLineGap(gap);
+                  const gapLabel = gap > 0 ? ` (${gapText === "mat" ? "mat" : `-${gapText}`})` : "";
                   return (
                     <button
                       key={line.multipv}
                       type="button"
                       className="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm"
-                      title="Suivre cette ligne"
+                      title={gap > 0 ? `Suivre cette ligne, écart ${gapText} pour le trait` : "Suivre cette ligne"}
                       style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)" }}
                       onClick={() => followLine(line.pvUci)}
                     >
                       <span className="font-semibold" style={{ color: "var(--gold-light)" }}>
                         {formatEval(white)}
+                        {gapLabel}
                       </span>{" "}
                       {text || "…"}
                     </button>
@@ -1390,12 +1447,21 @@ function isAbort(error: unknown) {
   return (error instanceof DOMException && error.name === "AbortError") || error instanceof ReviewCancelled;
 }
 
-function NavButton({ label, onClick }: { label: string; onClick: () => void }) {
+function NavButton({
+  label,
+  onClick,
+  disabled = false,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="min-h-11 shrink-0 rounded-lg px-3 text-sm"
+      disabled={disabled}
+      className="min-h-11 shrink-0 rounded-lg px-3 text-sm disabled:opacity-40"
       style={{ border: "1px solid var(--border)", color: "var(--text-primary)", background: "var(--bg-card)" }}
     >
       {label}
