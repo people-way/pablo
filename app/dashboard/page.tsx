@@ -7,6 +7,7 @@ import { flushPendingAnalysis } from "@/lib/pending-analysis";
 import { AccountNav } from "@/components/account-nav";
 import { AccountsSoon } from "@/components/accounts-soon";
 import { ACCOUNTS_UNAVAILABLE_CODE } from "@/lib/accounts-copy";
+import { withBasePath } from "@/lib/paths";
 
 // ─── Sparkline component ──────────────────────────────────────────────────────
 
@@ -315,7 +316,7 @@ function ChessUsernameEditor({
     setStatus("saving");
     setMessage("");
     try {
-      const response = await fetch("/api/profile", {
+      const response = await fetch(withBasePath("/api/profile"), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chess_com_username: value }),
@@ -446,7 +447,7 @@ export default function DashboardPage() {
     let cancelled = false;
     (async () => {
       try {
-        const response = await fetch("/api/dashboard");
+        const response = await fetch(withBasePath("/api/dashboard"));
         const payload = (await response.json()) as DashboardData & {
           error?: string;
           code?: string;
@@ -460,7 +461,7 @@ export default function DashboardPage() {
           return;
         }
         if (response.status === 401) {
-          window.location.href = "/login?redirect=/dashboard";
+          window.location.href = `${withBasePath("/login")}?redirect=/dashboard`;
           return;
         }
         if (!response.ok) {
@@ -469,7 +470,7 @@ export default function DashboardPage() {
         const flushed = await flushPendingAnalysis();
         if (cancelled) return;
         if (flushed === "saved") {
-          const again = await fetch("/api/dashboard");
+          const again = await fetch(withBasePath("/api/dashboard"));
           const fresh = (await again.json()) as DashboardData;
           if (again.ok) setData(fresh);
           else setData(payload);
@@ -494,8 +495,8 @@ export default function DashboardPage() {
   }, []);
 
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/";
+    await fetch(withBasePath("/api/auth/logout"), { method: "POST" });
+    window.location.href = withBasePath("/");
   }
 
   if (loading) {

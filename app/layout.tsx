@@ -1,6 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display, DM_Sans } from "next/font/google";
 import Script from "next/script";
+import { PwaInstallPrompt } from "@/components/pwa/install-prompt";
+import { metadataBaseUrl, withBasePath } from "@/lib/paths";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -15,14 +17,34 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  themeColor: "#0a0b0c",
+  colorScheme: "dark",
+};
+
 export const metadata: Metadata = {
+  metadataBase: metadataBaseUrl(),
   title: "Pablo — Chess Coach That Never Sleeps",
   description:
     "Pablo analyzes your chess games and delivers brutally honest improvement advice. Stop guessing. Start winning.",
+  applicationName: "Pablo",
+  appleWebApp: {
+    capable: true,
+    title: "Pablo",
+    statusBarStyle: "black",
+  },
+  icons: {
+    icon: [{ url: withBasePath("/icons/icon-192.png"), sizes: "192x192", type: "image/png" }],
+    apple: [{ url: withBasePath("/apple-touch-icon.png"), sizes: "180x180", type: "image/png" }],
+  },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
   openGraph: {
     title: "Pablo — Chess Coach That Never Sleeps",
     description:
       "Pablo analyzes your chess games and delivers brutally honest improvement advice. Stop guessing. Start winning.",
+    url: "/",
     type: "website",
   },
 };
@@ -42,6 +64,7 @@ export default function RootLayout({
         style={{ fontFamily: "var(--font-dm-sans), DM Sans, sans-serif" }}
       >
         {children}
+        <PwaInstallPrompt />
       </body>
       <Script
         src="https://phospho-nanocorp-prod--nanocorp-api-fastapi-app.modal.run/beacon/snippet.js?s=pablo"

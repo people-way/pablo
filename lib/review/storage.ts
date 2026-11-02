@@ -1,4 +1,5 @@
 import type { SavedReview, Side } from "./types";
+import { parseTrail } from "./variations";
 
 export const REVIEW_STORAGE_KEY = "pablo.revue.v1";
 export const MAX_SAVED_REVIEWS = 30;
@@ -19,7 +20,7 @@ export function readSaved(storage: Pick<Storage, "getItem">): SavedReview[] {
       return [];
     }
 
-    return parsed.filter(isSavedReview).slice(0, MAX_SAVED_REVIEWS);
+    return parsed.filter(isSavedReview).slice(0, MAX_SAVED_REVIEWS).map(withTrail);
   } catch {
     return [];
   }
@@ -62,4 +63,20 @@ function isSavedReview(value: unknown): value is SavedReview {
 
 function isSide(value: unknown): value is Side | null {
   return value === "w" || value === "b" || value === null;
+}
+
+function withTrail(review: SavedReview): SavedReview {
+  if (!("trail" in review) || review.trail == null) {
+    return review;
+  }
+
+  const trail = parseTrail(review.trail);
+
+  if (!trail) {
+    const next = { ...review };
+    delete next.trail;
+    return next;
+  }
+
+  return { ...review, trail };
 }

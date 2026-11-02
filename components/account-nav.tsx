@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { withBasePath } from "@/lib/paths";
 
 type SessionUser = {
   email: string;
@@ -14,7 +15,7 @@ function useSessionUser() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/auth/session")
+    fetch(withBasePath("/api/auth/session"))
       .then((response) => response.json())
       .then((data: { user?: SessionUser }) => {
         if (!cancelled) setUser(data.user ?? null);
@@ -42,6 +43,9 @@ export function AccountLinks() {
     <div className="flex items-center gap-3 sm:gap-5" style={{ color: "var(--text-secondary)" }}>
       <Link href="/analyze" className={linkClass}>
         Analyze
+      </Link>
+      <Link href="/ouvertures" className={linkClass}>
+        Ouvertures
       </Link>
       <Link href="/revue" className={linkClass}>
         Revue
@@ -71,7 +75,7 @@ export function AccountNav() {
         borderBottom: "1px solid var(--border)",
       }}
     >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 min-h-14 py-2 flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/"
           className="flex items-center gap-2 shrink-0"
@@ -84,9 +88,12 @@ export function AccountNav() {
           <span style={{ color: "var(--gold)" }}>♞</span>
           Pablo
         </Link>
-        <nav className="flex items-center gap-3 sm:gap-5" style={{ color: "var(--text-secondary)" }}>
+        <nav className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 sm:gap-5" style={{ color: "var(--text-secondary)" }}>
           <Link href="/analyze" className={linkClass}>
             Analyze
+          </Link>
+          <Link href="/ouvertures" className={linkClass}>
+            Ouvertures
           </Link>
           <Link href="/revue" className={linkClass}>
             Revue

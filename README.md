@@ -13,9 +13,13 @@ Pablo is a Next.js chess coaching app that analyzes your games with Stockfish en
 
 | Route | Description |
 |-------|-------------|
-| `/` | Landing page with hero, how-it-works, and pricing |
-| `/analyze` | Free trial — import Chess.com games or paste PGN |
-| `/upgrade` | Pablo Pro upgrade page with feature comparison |
+| `/pablo` | Landing page with hero, how-it-works, and pricing |
+| `/pablo/analyze` | Free trial — import Chess.com games or paste PGN |
+| `/pablo/revue` | Game review, with Stockfish in the browser |
+| `/pablo/ouvertures` | Opening coach |
+| `/pablo/upgrade` | Pablo Pro upgrade page with feature comparison |
+
+Pablo is mounted at `/pablo` (`basePath`). A request to `/` or `/revue` on this deployment redirects to the same path under `/pablo`. In production, set `PABLO_CANONICAL_ORIGIN=https://anarchikgames.com` (Production only, then redeploy) so those old URLs go to `https://anarchikgames.com/pablo/...`. Leave it unset on Preview so a preview keeps its own host.
 
 ## Quick start
 
@@ -24,7 +28,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000/pablo](http://localhost:3000/pablo) in your browser. The site root redirects there.
 
 ## Build
 
@@ -50,8 +54,9 @@ Game import, the sample demo (`/analyze?sample=1`), and `/revue` work with no ac
 |----------|----------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | For accounts | Project URL, for example `https://<project-ref>.supabase.co`. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | For accounts | Publishable key (`sb_publishable_...`). Safe to expose in the browser. Do not set a secret or service-role key. |
+| `PABLO_CANONICAL_ORIGIN` | Production | Public studio origin, `https://anarchikgames.com`, with no path. Old URLs on this deployment redirect there under `/pablo`. Set it for Production only. |
 
-Set both for Production, Preview, and Development under **Settings → Environment Variables**. The app does not use `DATABASE_URL`, `DATABASE_SSL`, `PABLO_AUTH_BYPASS`, or the NanoCorp email CLI.
+Set the two Supabase variables for Production, Preview, and Development under **Settings → Environment Variables**. Set `PABLO_CANONICAL_ORIGIN` for Production only. The app does not use `DATABASE_URL`, `DATABASE_SSL`, `PABLO_AUTH_BYPASS`, or the NanoCorp email CLI.
 
 ### Supabase Auth settings
 
@@ -61,18 +66,34 @@ In **Authentication → URL configuration**:
 
 | Setting | Value |
 |---------|--------|
-| Site URL | The production origin, for example `https://<production-host>` |
+| Site URL | `https://anarchikgames.com/pablo` |
 | Redirect URLs | `http://localhost:3000/**` |
 | | `https://*-peopleways-projects.vercel.app/**` |
 | | `https://pablo.anarchikgames.com/**` |
-| | The production origin with `/**`, if it is not already covered |
+| | `https://anarchikgames.com/**` |
+| | `https://pablo-eight-beta.vercel.app/**` |
 
-Magic links are sent by Supabase. The default template works when the link is opened in the same browser that requested it (PKCE). To also allow another device, edit the templates under **Authentication → Emails** and point them at `/auth/callback` with `token_hash`:
+Magic links are sent by Supabase. The default template works when the link is opened in the same browser that requested it (PKCE). To also allow another device, edit the templates under **Authentication → Emails** and append `token_hash` to `RedirectTo` (that URL is already `/pablo/auth/callback`):
 
 - **Magic Link:** `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=magiclink`
 - **Confirm signup:** `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email`
 
-`RedirectTo` is the `/auth/callback` URL for the environment that asked for the link, so preview deployments keep working. OTP expiry is **Authentication → Providers → Email** (the default is one hour).
+`RedirectTo` is the `/pablo/auth/callback` URL for the environment that asked for the link, so preview deployments keep working. Auth cookies are scoped to `/pablo` so they are not sent to other games on `anarchikgames.com`. OTP expiry is **Authentication → Providers → Email** (the default is one hour).
+
+## Studio hub
+
+`hub/` is a separate Next.js app, deployed as its own Vercel project with Root Directory `hub/` and the apex domain `anarchikgames.com`. It serves the studio home page and proxies `/pablo` to this deployment and `/street-tycoons` to Street Tycoons. The proxy is a route handler so Next's segment-prefetch header reaches the game. `/_vercel/insights` is rewritten to Street Tycoons, which serves Vercel Analytics. Upstream origins live in `hub/lib/upstreams.ts`. Game proxies read them on each request; the analytics rewrite is fixed at build time:
+
+| Variable | Default |
+|----------|---------|
+| `PABLO_UPSTREAM_ORIGIN` | `https://pablo-eight-beta.vercel.app` |
+| `STREET_TYCOONS_UPSTREAM_ORIGIN` | `https://street-tycoons.vercel.app` |
+
+```bash
+cd hub
+npm install
+npm run dev
+```
 
 ### Accounts data
 

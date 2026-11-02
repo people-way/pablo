@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { BASE_PATH } from "@/lib/paths";
 import { supabaseEnv } from "./env";
 
 /**
@@ -14,6 +15,7 @@ export async function updateSession(request: NextRequest) {
 
   let supabaseResponse = NextResponse.next({ request });
   const supabase = createServerClient(env.url, env.publishableKey, {
+    cookieOptions: { path: BASE_PATH },
     cookies: {
       getAll() {
         return request.cookies.getAll();

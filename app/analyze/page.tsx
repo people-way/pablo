@@ -9,6 +9,7 @@ import { AccountNav } from "@/components/account-nav";
 import { requestMagicLink } from "@/lib/magic-link-client";
 import { ACCOUNTS_UNAVAILABLE_CODE } from "@/lib/accounts-copy";
 import { stashPendingAnalysis } from "@/lib/pending-analysis";
+import { withBasePath } from "@/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -106,6 +107,9 @@ function StepInput({
         >
           <span>←</span>
           <span>Back</span>
+        </Link>
+        <Link href="/ouvertures" className="mb-6 block text-sm" style={{ color: "var(--gold)" }}>
+          Coach d&apos;ouvertures — le répertoire réel
         </Link>
 
         {/* Avatar glyph */}
@@ -1048,7 +1052,7 @@ function StepReport({
   useEffect(() => {
     if (!sessionLoaded || !sessionUser || isSample) return;
     let cancelled = false;
-    fetch("/api/analyses/save", {
+    fetch(withBasePath("/api/analyses/save"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ result: report, chessUsername: username, sample: false }),
@@ -1264,7 +1268,7 @@ function AnalyzePageInner() {
 
   // Check session on mount
   useEffect(() => {
-    fetch("/api/auth/session")
+    fetch(withBasePath("/api/auth/session"))
       .then((r) => r.json())
       .then((d: { user: SessionUser }) => setSessionUser(d.user ?? null))
       .catch(() => setSessionUser(null))
@@ -1331,7 +1335,7 @@ function AnalyzePageInner() {
     try {
       // Step A: import games
       const importRes = await fetch(
-        `/api/import/chess-com?username=${encodeURIComponent(user)}`,
+        withBasePath(`/api/import/chess-com?username=${encodeURIComponent(user)}`),
       );
       const importData = (await importRes.json()) as ImportApiResponse;
 
@@ -1358,7 +1362,7 @@ function AnalyzePageInner() {
       }
 
       // Step B: analyze openings
-      const analyzeRes = await fetch("/api/analyze/openings", {
+      const analyzeRes = await fetch(withBasePath("/api/analyze/openings"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ games, username: user }),

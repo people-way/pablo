@@ -11,6 +11,8 @@ test("safeRedirectPath keeps in-app paths", () => {
     "/analyze?username=ada",
   );
   assert.equal(safeRedirectPath("  /revue  "), "/revue");
+  assert.equal(safeRedirectPath("/pablo/revue"), "/revue");
+  assert.equal(safeRedirectPath("/pablo"), "/");
 });
 
 test("safeRedirectPath blocks open redirects", () => {
@@ -20,6 +22,7 @@ test("safeRedirectPath blocks open redirects", () => {
   assert.equal(safeRedirectPath("/%2f%2fevil.example"), "/dashboard");
   assert.equal(safeRedirectPath("javascript:alert(1)"), "/dashboard");
   assert.equal(safeRedirectPath(null), "/dashboard");
+  assert.equal(safeRedirectPath("/pablo//evil.example"), "/dashboard");
 });
 
 test("normalizeChessComUsername accepts Chess.com handles", () => {

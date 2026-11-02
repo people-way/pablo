@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { BASE_PATH } from "@/lib/paths";
 import { supabaseEnv } from "./env";
 
 /** Server client for Route Handlers, Server Components, and Server Actions. */
@@ -10,6 +11,7 @@ export async function createClient() {
   }
   const cookieStore = await cookies();
   return createServerClient(env.url, env.publishableKey, {
+    cookieOptions: { path: BASE_PATH },
     cookies: {
       getAll() {
         return cookieStore.getAll();

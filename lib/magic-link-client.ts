@@ -4,6 +4,7 @@ import {
   ACCOUNTS_SOON_TITLE,
   ACCOUNTS_UNAVAILABLE_CODE,
 } from "./accounts-copy";
+import { BASE_PATH, withBasePath } from "./paths";
 import { createClient } from "./supabase/client";
 import { accountsConfigured } from "./supabase/env";
 
@@ -27,10 +28,10 @@ export async function requestMagicLink(
   }
 
   const next = safeRedirectPath(redirect);
-  const redirectTo = new URL("/auth/callback", window.location.origin);
+  const redirectTo = new URL(withBasePath("/auth/callback"), window.location.origin);
   redirectTo.searchParams.set("next", next);
   const secure = window.location.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `${AUTH_NEXT_COOKIE}=${encodeURIComponent(next)}; Path=/; Max-Age=3600; SameSite=Lax${secure}`;
+  document.cookie = `${AUTH_NEXT_COOKIE}=${encodeURIComponent(next)}; Path=${BASE_PATH}; Max-Age=3600; SameSite=Lax${secure}`;
 
   try {
     const supabase = createClient();

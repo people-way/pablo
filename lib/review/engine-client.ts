@@ -1,3 +1,4 @@
+import { withBasePath } from "@/lib/paths";
 import { parseBestMove, parseInfoLine, type InfoScore } from "./uci";
 
 export type EngineLine = InfoScore;
@@ -31,7 +32,7 @@ export class ReviewEngine {
   private stopWatch: ReturnType<typeof setTimeout> | null = null;
   private readonly workerUrl: string;
 
-  constructor(workerUrl = "/engine/stockfish-18-lite-single.js") {
+  constructor(workerUrl = withBasePath("/engine/stockfish-18-lite-single.js")) {
     this.workerUrl = workerUrl;
     this.worker = this.createWorker();
     this.readyPromise = this.whenReady();

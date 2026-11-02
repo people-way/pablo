@@ -347,6 +347,66 @@ describe("opening phase and the three lessons", () => {
     assert.equal(opening.exitPly, null);
   });
 
+  it("does not call a Chess.com King's Indian fianchetto a London", () => {
+    const game = parsePgn(`[ECO "E62"]
+[ECOUrl "https://www.chess.com/openings/Kings-Indian-Defense-Fianchetto-Karlsbad-Panno-Uhlmann-Szabo-System-8.d5-Nb8"]
+
+1. d4 Nf6 2. Nf3 g6 3. g3 Bg7 4. Bg2 d6 5. O-O O-O 6. c4 *`);
+    const opening = recognizeOpening(game.moves, game.opening);
+
+    assert.equal(opening.name, "Est-indienne");
+    assert.notEqual(opening.source, "catalog");
+    assert.notEqual(opening.exitLabel, "3. g3");
+  });
+
+  it("reads a bare Chess.com ECO code from the catalog", () => {
+    const game = parsePgn(`[ECO "E62"]
+
+1. d4 Nf6 2. c4 g6 3. g3 *`);
+    const opening = recognizeOpening(game.moves, game.opening);
+
+    assert.equal(opening.source, "header");
+    assert.equal(opening.name, "Est-indienne");
+  });
+
+  it("does not call a Rossolimo an Accelerated Dragon", () => {
+    const game = parsePgn(`[ECO "B30"]
+[ECOUrl "https://www.chess.com/openings/Sicilian-Defense-Rossolimo-Variation-3.Bb5"]
+
+1. e4 c5 2. Nf3 Nc6 3. Bb5 *`);
+    const opening = recognizeOpening(game.moves, game.opening);
+
+    assert.notEqual(opening.name, "Sicilienne Dragon");
+    assert.match(opening.name, /Rossolimo/);
+  });
+
+  it("names the London against a fianchetto only after Bf4 has been played through", () => {
+    const started = recognizeOpening(
+      parsePgn("1. d4 Nf6 2. Nf3 g6 3. Bf4 Bg7 *").moves,
+      "",
+    );
+    assert.notEqual(started.name, "Système de Londres");
+
+    const played = recognizeOpening(
+      parsePgn("1. d4 Nf6 2. Nf3 g6 3. Bf4 Bg7 4. e3 O-O 5. Be2 d6 6. h3 *").moves,
+      "",
+    );
+    assert.equal(played.source, "catalog");
+    assert.equal(played.name, "Système de Londres");
+    assert.equal(played.variation, "London vs KID setup");
+  });
+
+  it("still names the Accelerated Dragon once ...g6 has been played", () => {
+    const opening = recognizeOpening(
+      parsePgn("1. e4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4 g6 5. c4 *").moves,
+      "",
+    );
+
+    assert.equal(opening.source, "catalog");
+    assert.equal(opening.name, "Sicilienne Dragon");
+    assert.equal(opening.variation, "Accelerated Dragon");
+  });
+
   it("keeps the Philidor header of the sample game and finds an exit", () => {
     const game = parsePgn(SAMPLE_PGN);
     const opening = recognizeOpening(game.moves, game.opening);

@@ -9,6 +9,7 @@ type CatalogOpening = {
   opening_id: string;
   name: string;
   common_name?: string;
+  eco_codes?: string[];
   move_order: string;
   variations?: Array<{ name: string; moves: string }>;
 };
@@ -309,9 +310,13 @@ function matchBook(sans: string[]): { french: string; variation: string | null; 
         continue;
       }
 
+      // These lines are alternate move orders, not extensions of the parent.
+      // A short shared prefix is not the opening: 1.d4 Nf6 2.Nf3 g6 is still a
+      // King's Indian until Bf4, and 1.e4 c5 2.Nf3 Nc6 is not yet a Dragon.
+      // Name the line only once its book moves have actually been played.
       const plies = commonPrefix(sans, line.sans);
-      if (plies >= 4) {
-        consider({ french: group.french, variation: line.variation, plies, floor: 4 });
+      if (line.sans.length > 0 && plies >= line.sans.length) {
+        consider({ french: group.french, variation: line.variation, plies, floor: line.sans.length });
       }
     }
   }
@@ -534,6 +539,14 @@ function headerName(header: string): { name: string; variation: string | null } 
     return null;
   }
 
+  const eco = header.trim().toUpperCase();
+  if (/^[A-E]\d{2}$/.test(eco)) {
+    const named = openingByEco(eco);
+    if (named) {
+      return named;
+    }
+  }
+
   const normalized = normalize(header);
   let best: { name: string; variation: string | null; score: number } | null = null;
 
@@ -559,6 +572,21 @@ function headerName(header: string): { name: string; variation: string | null } 
   }
 
   return { name: header, variation: null };
+}
+
+function openingByEco(eco: string): { name: string; variation: string | null } | null {
+  for (const opening of catalogJson as CatalogOpening[]) {
+    if (!opening.eco_codes?.includes(eco)) {
+      continue;
+    }
+
+    return {
+      name: FRENCH_OPENING[opening.opening_id] ?? opening.name,
+      variation: null,
+    };
+  }
+
+  return null;
 }
 
 function bookLines(catalog: CatalogOpening[]): BookLine[] {
@@ -642,6 +670,7 @@ function commonPrefix(left: string[], right: string[]) {
 
 function normalize(value: string) {
   return value
+    .replace(/['’]/g, "")
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()

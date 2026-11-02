@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { type NextRequest, NextResponse } from "next/server";
 import { AUTH_NEXT_COOKIE, safeRedirectPath } from "@/lib/account-guards";
+import { applyCanonicalHost, BASE_PATH } from "@/lib/paths";
 import { supabaseEnv } from "@/lib/supabase/env";
 
 export const runtime = "nodejs";
@@ -21,6 +22,7 @@ function loginRedirect(request: NextRequest, error: string) {
   url.pathname = "/login";
   url.search = "";
   url.searchParams.set("error", error);
+  applyCanonicalHost(url);
   return NextResponse.redirect(url);
 }
 
@@ -50,11 +52,14 @@ export async function GET(request: NextRequest) {
   const successUrl = request.nextUrl.clone();
   successUrl.pathname = nextPath;
   successUrl.search = "";
+  applyCanonicalHost(successUrl);
 
   const response = NextResponse.redirect(successUrl);
+  response.cookies.set(AUTH_NEXT_COOKIE, "", { path: BASE_PATH, maxAge: 0 });
   response.cookies.set(AUTH_NEXT_COOKIE, "", { path: "/", maxAge: 0 });
 
   const supabase = createServerClient(env.url, env.publishableKey, {
+    cookieOptions: { path: BASE_PATH },
     cookies: {
       getAll() {
         return request.cookies.getAll();
